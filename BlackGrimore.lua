@@ -91,17 +91,6 @@ local KeyFrame = Make("Frame", {
 }, ScreenGui)
 Make("UICorner", {CornerRadius=UDim.new(0,14)}, KeyFrame)
 Make("UIStroke", {Color=Color3.fromRGB(60,60,90), Thickness=1.5}, KeyFrame)
--- Drag
-local dragging, dragStart, startPos = false, nil, nil
-KeyFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging, dragStart, startPos = true, input.Position, KeyFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
 UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
     or input.UserInputType == Enum.UserInputType.Touch) then
