@@ -1,6 +1,6 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║         Hyper Hub - WindUI            ║
+    ║         Hyper Hub - WindUI               ║
     ║     Auto-Farm / ESP / Kill Aura          ║
     ╚══════════════════════════════════════════╝
 ]]
@@ -321,10 +321,12 @@ local function OnKeyValidated(licenseData)
     local floatingBodyPos = nil
     local jumpConnection = nil
     local connections = {}
+
     -- ════════════════════════════════════════════════════════════════
     -- CONFIGURATION WINDUI
     -- ════════════════════════════════════════════════════════════════
     WindUI:SetTheme("Dark")
+
     -- ════════════════════════════════════════════════════════════════
     -- FONCTIONS UTILITAIRES
     -- ════════════════════════════════════════════════════════════════
@@ -492,6 +494,7 @@ local function OnKeyValidated(licenseData)
         bp.Parent = hrp
         floatingBodyPos = bp
     end
+
     -- ════════════════════════════════════════════════════════════════
     -- BOUCLE AUTO-FARM
     -- ════════════════════════════════════════════════════════════════
@@ -621,6 +624,7 @@ local function OnKeyValidated(licenseData)
             end
         end
     end)
+
     -- ════════════════════════════════════════════════════════════════
     -- CREATION DE LA FENETRE
     -- ════════════════════════════════════════════════════════════════
@@ -642,6 +646,7 @@ local function OnKeyValidated(licenseData)
             ButtonsType = "Mac",
         },
     })
+
     -- ════════════════════════════════════════════════════════════════
     -- TIMER / LICENSE TAG
     -- ════════════════════════════════════════════════════════════════
@@ -667,6 +672,7 @@ local function OnKeyValidated(licenseData)
             end
         end)
     end
+
     -- ════════════════════════════════════════════════════════════════
     -- SECTIONS & TABS
     -- ════════════════════════════════════════════════════════════════
@@ -674,10 +680,7 @@ local function OnKeyValidated(licenseData)
         Title = "Principal",
         Opened = true,
     })
-    local SettingsSection = Window:Section({
-        Title = "Parametres",
-        Opened = true,
-    })
+
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET ACCUEIL
     -- ════════════════════════════════════════════════════════════════
@@ -703,6 +706,7 @@ local function OnKeyValidated(licenseData)
         ImageSize = 20,
         Color = Color3.fromHex("#30ff6a"),
     })
+
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET AUTO-FARM
     -- ════════════════════════════════════════════════════════════════
@@ -787,279 +791,582 @@ local function OnKeyValidated(licenseData)
             warn("[Hub] Tools trouves: " .. #newTools)
         end,
     })
+
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET MONEY / ANTI-BAN
+    -- ONGLET OTHER QUEST (ex-Money, sans Auto Delivery GreenJuice)
+    -- Contient les 3 nouveaux toggles du Script B
     -- ════════════════════════════════════════════════════════════════
-    local MoneyTab = MainSection:Tab({
-        Title = "Money",
-        Icon = "coins",
+    local OtherQuestTab = MainSection:Tab({
+        Title = "Other Quest",
+        Icon = "scroll-text",
     })
-    local TweenServiceAB = game:GetService("TweenService")
-    local AntiBan = {
-        questsCompleted = 0,
-        sessionStart = tick(),
-        totalSessionQuests = 0,
-        lastQuestTime = 0,
-        cyclesSinceBreak = 0,
-        CONFIG = {
-            MIN_CYCLE_DELAY = 3,
-            MAX_CYCLE_DELAY = 8,
-            BREAK_EVERY = math.random(8, 15),
-            BREAK_MIN = 30,
-            BREAK_MAX = 90,
-            AFK_EVERY = math.random(30, 50),
-            AFK_DURATION_MIN = 10,
-            AFK_DURATION_MAX = 30,
-            MAX_PER_SESSION = math.random(80, 150),
-            HOURLY_LIMIT = 25,
-            TWEEN_SPEED = 20,
-        }
-    }
-    function AntiBan:NaturalDelay(min, max)
-        local base = min + (max - min) * math.random()
-        local noise = (math.random() - 0.5) * 0.2 * base
-        return base + noise
-    end
-    function AntiBan:CanDoQuest()
-        if self.totalSessionQuests >= self.CONFIG.MAX_PER_SESSION then
-            return false, "session_limit"
-        end
-        local now = tick()
-        local oneHourAgo = now - 3600
-        if self.lastQuestTime > oneHourAgo then
-            local questsThisHour = self.questsCompleted
-            if questsThisHour >= self.CONFIG.HOURLY_LIMIT then
-                return false, "hourly_limit"
-            end
-        else
-            self.questsCompleted = 0
-        end
-        return true, "ok"
-    end
-    function AntiBan:HandleBreaks()
-        self.cyclesSinceBreak = self.cyclesSinceBreak + 1
-        if self.cyclesSinceBreak >= self.CONFIG.BREAK_EVERY then
-            self.cyclesSinceBreak = 0
-            self.CONFIG.BREAK_EVERY = math.random(8, 15)
-            local breakTime = self:NaturalDelay(self.CONFIG.BREAK_MIN, self.CONFIG.BREAK_MAX)
-            return breakTime, "break"
-        end
-        local chance = math.random(1, 100)
-        if chance <= 5 then
-            return math.random(5, 15), "distraction"
-        elseif chance <= 15 then
-            return math.random(2, 5), "hesitation"
-        end
-        return 0, "none"
-    end
-    function AntiBan:TweenToPosition(hrp, targetPos, callback)
-        local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = distance / self.CONFIG.TWEEN_SPEED
-        tweenTime = tweenTime * self:NaturalDelay(0.8, 1.3)
-        if tweenTime < 2 then tweenTime = 2 end
-        if tweenTime > 30 then tweenTime = 30 end
-        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-        local tween = TweenServiceAB:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
-        local bodyPos = Instance.new("BodyPosition")
-        bodyPos.Name = "TweenFloat"
-        bodyPos.MaxForce = Vector3.new(0, math.huge, 0)
-        bodyPos.P = 50000
-        bodyPos.D = 5000
-        bodyPos.Position = hrp.Position
-        bodyPos.Parent = hrp
-        local updateConnection
-        updateConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if hrp and hrp.Parent then
-                bodyPos.Position = Vector3.new(hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
-            end
-        end)
-        tween:Play()
-        if callback then
-            task.spawn(function()
-                task.wait(tweenTime * 0.7)
-                callback(tweenTime * 0.3)
-            end)
-        end
-        tween.Completed:Wait()
-        updateConnection:Disconnect()
-        bodyPos:Destroy()
-        hrp.Velocity = Vector3.new(0, 0, 0)
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        return tweenTime
-    end
-    local AutoMoneyEnabled = false
-    MoneyTab:Toggle({
-        Title = "Deliver GreenJuice lvl 125",
+    OtherQuestTab:Section({
+        Title = "Other Quests",
+        TextSize = 18,
+        FontWeight = Enum.FontWeight.SemiBold,
+    })
+
+    -- ─── Toggle 1 : Cut Woods lvl 1 ───────────────────────────────
+    local AutoWoodEnabled = false
+
+    OtherQuestTab:Toggle({
+        Title = "Cut Woods lvl 1",
         Value = false,
         Callback = function(state)
-            AutoMoneyEnabled = state
+            AutoWoodEnabled = state
             if state then
-                AntiBan.questsCompleted = 0
-                AntiBan.sessionStart = tick()
-                AntiBan.totalSessionQuests = 0
-                AntiBan.cyclesSinceBreak = 0
-                AntiBan.CONFIG.BREAK_EVERY = math.random(8, 15)
-                AntiBan.CONFIG.AFK_EVERY = math.random(30, 50)
-                AntiBan.CONFIG.MAX_PER_SESSION = math.random(80, 150)
                 task.spawn(function()
                     local player = game:GetService("Players").LocalPlayer
-                    local MainRemote = game:GetService("ReplicatedStorage").MainRemote
-                    local cachedAstaParts = {}
-                    local cachedAstaPosition = nil
-                    local lastCacheTime = 0
-                    local function refreshAsta()
-                        if tick() - lastCacheTime < 10 then return end
-                        cachedAstaParts = {}
-                        cachedAstaPosition = nil
+
+                    local TreePositions = {
+                        {Position = Vector3.new(-92.12, 45.75, -526.68),  LookAt = Vector3.new(-92.12,  45.75, -527.68)},
+                        {Position = Vector3.new(-106.17, 45.75, -526.59), LookAt = Vector3.new(-106.17, 45.75, -527.59)},
+                        {Position = Vector3.new(-92.00, 45.75, -537.22),  LookAt = Vector3.new(-92.00,  45.75, -538.22)},
+                        {Position = Vector3.new(-106.09, 45.75, -535.37), LookAt = Vector3.new(-106.09, 45.75, -536.37)},
+                        {Position = Vector3.new(-92.12, 45.75, -526.68),  LookAt = Vector3.new(-92.12,  45.75, -527.68)},
+                    }
+                    local NpcPosition = Vector3.new(-118.06, 45.25, -532.47)
+                    local NpcLookAt   = Vector3.new(-119.06, 45.25, -532.47)
+
+                    local function SendWoodQuest()
                         pcall(function()
-                            local npcsFolder = workspace:FindFirstChild("NPCs")
-                            if not npcsFolder then return end
-                            local asta = npcsFolder:FindFirstChild("Asta")
-                            if not asta then return end
-                            for _, p in ipairs(asta:GetDescendants()) do
-                                if p:IsA("BasePart") then
-                                    table.insert(cachedAstaParts, p)
-                                end
-                            end
-                            local astaPart = asta:FindFirstChild("HumanoidRootPart")
-                                or asta:FindFirstChild("Head")
-                                or asta:FindFirstChild("Torso")
-                            if not astaPart and asta:IsA("Model") then
-                                astaPart = asta.PrimaryPart
-                            end
-                            if not astaPart and #cachedAstaParts > 0 then
-                                astaPart = cachedAstaParts[1]
-                            end
-                            if astaPart then
-                                cachedAstaPosition = astaPart.Position + Vector3.new(0, 0, 3)
-                            end
-                        end)
-                        lastCacheTime = tick()
-                    end
-                    local function touchAstaProgressive(hrp)
-                        if #cachedAstaParts == 0 then return false end
-                        local touched = false
-                        pcall(function()
-                            local shuffled = {}
-                            for i, v in ipairs(cachedAstaParts) do shuffled[i] = v end
-                            for i = #shuffled, 2, -1 do
-                                local j = math.random(1, i)
-                                shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
-                            end
-                            local numToTouch = math.random(1, math.ceil(#shuffled / 2))
-                            for i = 1, numToTouch do
-                                local astaPart = shuffled[i]
-                                if astaPart and astaPart.Parent then
-                                    firetouchinterest(hrp, astaPart, 0)
-                                    task.wait(AntiBan:NaturalDelay(0.05, 0.15))
-                                    firetouchinterest(hrp, astaPart, 1)
-                                    touched = true
-                                end
-                            end
-                        end)
-                        return touched
-                    end
-                    local function SendMoneyQuest()
-                        pcall(function()
-                            MainRemote:FireServer(
-                                "pcgamer4",
-                                {
-                                    ["Extra"] = "DeliverGreenJuice",
-                                    ["Type"] = "questpls",
-                                    ["NpcName"] = "Yuno"
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = {
+                                    ["Extra"]   = "CutWoods",
+                                    ["Type"]    = "questpls",
+                                    ["NpcName"] = "Father Orfi"
                                 }
-                            )
+                            }
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
                         end)
                     end
-                    local startPosition = nil
-                    while AutoMoneyEnabled do
-                        local canDo, reason = AntiBan:CanDoQuest()
-                        if not canDo then
-                            if reason == "session_limit" then
-                                AutoMoneyEnabled = false
-                                break
-                            elseif reason == "hourly_limit" then
-                                task.wait(AntiBan:NaturalDelay(30, 60))
-                                continue
-                            end
+
+                    local function findMAxe()
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            local tool = backpack:FindFirstChild("MAxe")
+                            if tool then return tool end
                         end
+                        local char = player.Character
+                        if char then
+                            local tool = char:FindFirstChild("MAxe")
+                            if tool then return tool end
+                        end
+                        return nil
+                    end
+
+                    while AutoWoodEnabled do
                         local character = player.Character
-                        if not character then
-                            player.CharacterAdded:Wait()
-                            task.wait(2)
-                            continue
-                        end
+                        if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
                         local hrp = character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then
-                            player.CharacterAdded:Wait()
-                            task.wait(2)
-                            continue
-                        end
+                        if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
                         local humanoid = character:FindFirstChildOfClass("Humanoid")
-                        if not humanoid or humanoid.Health <= 0 then
-                            player.CharacterAdded:Wait()
+                        if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
+
+                        -- Etape 1 : NPC + quete
+                        hrp.CFrame = CFrame.new(NpcPosition, NpcLookAt)
+                        hrp.Velocity = Vector3.new(0,0,0)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        task.wait(0.5)
+                        SendWoodQuest()
+                        task.wait(2)
+                        if not AutoWoodEnabled then break end
+
+                        -- Etape 2 : Equiper MAxe
+                        local axe = nil
+                        local waitTime = 0
+                        while not axe and waitTime < 5 and AutoWoodEnabled do
+                            axe = findMAxe()
+                            if not axe then task.wait(0.3); waitTime = waitTime + 0.3 end
+                        end
+                        if not axe or not AutoWoodEnabled then continue end
+                        character = player.Character
+                        humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and axe.Parent ~= character then
+                            humanoid:EquipTool(axe)
+                            task.wait(0.3)
+                        end
+                        if not AutoWoodEnabled then break end
+
+                        -- Etape 3 : Couper les 5 arbres
+                        for _, treeData in ipairs(TreePositions) do
+                            if not AutoWoodEnabled then break end
+                            character = player.Character
+                            hrp = character and character:FindFirstChild("HumanoidRootPart")
+                            if not hrp then break end
+                            humanoid = character:FindFirstChildOfClass("Humanoid")
+                            if not humanoid or humanoid.Health <= 0 then break end
+                            axe = findMAxe()
+                            if axe then
+                                if axe.Parent ~= character then
+                                    humanoid:EquipTool(axe)
+                                    task.wait(0.2)
+                                end
+                            end
+                            hrp.CFrame = CFrame.new(treeData.Position, treeData.LookAt)
+                            hrp.Velocity = Vector3.new(0,0,0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                            task.wait()
+                            axe = findMAxe()
+                            if axe then
+                                pcall(function() axe:Activate() end)
+                            end
                             task.wait(2)
-                            continue
                         end
-                        refreshAsta()
-                        if not cachedAstaPosition then
-                            task.wait(2)
-                            continue
-                        end
-                        if not startPosition then
-                            startPosition = hrp.Position
-                        end
-                        SendMoneyQuest()
-                        task.wait(AntiBan:NaturalDelay(1, 3))
-                        if not AutoMoneyEnabled then break end
+                        if not AutoWoodEnabled then break end
+
+                        -- Etape 4 : Rendre au NPC
                         character = player.Character
                         hrp = character and character:FindFirstChild("HumanoidRootPart")
                         if not hrp then continue end
-                        refreshAsta()
-                        if not cachedAstaPosition then continue end
-                        AntiBan:TweenToPosition(hrp, cachedAstaPosition, function(remainingTime)
-                            local touchStart = tick()
-                            while (tick() - touchStart) < remainingTime and AutoMoneyEnabled do
-                                local char = player.Character
-                                local h = char and char:FindFirstChild("HumanoidRootPart")
-                                if h then touchAstaProgressive(h) end
-                                task.wait(AntiBan:NaturalDelay(0.3, 0.8))
-                            end
-                        end)
-                        if not AutoMoneyEnabled then break end
-                        character = player.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            for i = 1, math.random(2, 5) do
-                                touchAstaProgressive(hrp)
-                                task.wait(AntiBan:NaturalDelay(0.2, 0.5))
-                            end
-                        end
-                        task.wait(AntiBan:NaturalDelay(1, 3))
-                        if not AutoMoneyEnabled then break end
-                        character = player.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if hrp and startPosition then
-                            AntiBan:TweenToPosition(hrp, startPosition, nil)
-                        end
-                        AntiBan.questsCompleted = AntiBan.questsCompleted + 1
-                        AntiBan.totalSessionQuests = AntiBan.totalSessionQuests + 1
-                        AntiBan.lastQuestTime = tick()
-                        if not AutoMoneyEnabled then break end
-                        task.wait(AntiBan:NaturalDelay(
-                            AntiBan.CONFIG.MIN_CYCLE_DELAY,
-                            AntiBan.CONFIG.MAX_CYCLE_DELAY
-                        ))
-                        local pauseTime, pauseType = AntiBan:HandleBreaks()
-                        if pauseTime > 0 then
-                            task.wait(pauseTime)
-                        end
-                        if not AutoMoneyEnabled then break end
+                        hrp.CFrame = CFrame.new(NpcPosition, NpcLookAt)
+                        hrp.Velocity = Vector3.new(0,0,0)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        task.wait(3)
+                        if not AutoWoodEnabled then break end
                     end
                 end)
             end
         end,
     })
+
+    -- ─── Toggle 2 : Auto Farm Potatoes lvl 30 ─────────────────────
+    local AutoPotatoEnabled = false
+
+    OtherQuestTab:Toggle({
+        Title = "Auto Farm Potatoes lvl 30",
+        Value = false,
+        Callback = function(state)
+            AutoPotatoEnabled = state
+            if state then
+                task.spawn(function()
+                    local player = game:GetService("Players").LocalPlayer
+
+                    local function getChrisPosition()
+                        local npcsFolder = workspace:FindFirstChild("NPCs")
+                        if not npcsFolder then return nil end
+                        local chris = npcsFolder:FindFirstChild("Chris")
+                        if not chris then return nil end
+                        if chris.PrimaryPart then return chris.PrimaryPart.CFrame end
+                        local hrp = chris:FindFirstChild("HumanoidRootPart")
+                        if hrp then return hrp.CFrame end
+                        local head = chris:FindFirstChild("Head")
+                        if head then return head.CFrame end
+                        for _, part in ipairs(chris:GetDescendants()) do
+                            if part:IsA("BasePart") then return part.CFrame end
+                        end
+                        return nil
+                    end
+
+                    local function SendPotatoQuest()
+                        pcall(function()
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = {
+                                    ["Extra"]   = "GetPotatoes",
+                                    ["Type"]    = "questpls",
+                                    ["NpcName"] = "Chris"
+                                }
+                            }
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                        end)
+                    end
+
+                    local function findHoe()
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            local tool = backpack:FindFirstChild("Hoe")
+                            if tool then return tool end
+                        end
+                        local char = player.Character
+                        if char then
+                            local tool = char:FindFirstChild("Hoe")
+                            if tool then return tool end
+                        end
+                        return nil
+                    end
+
+                    local function findPotatoes()
+                        local potatoes = {}
+                        pcall(function()
+                            local theMap = workspace:FindFirstChild("THEMAP")
+                            if not theMap then return end
+                            local hagePotatoes = theMap:FindFirstChild("HAGEPOTATOES")
+                            if not hagePotatoes then return end
+                            for _, obj in ipairs(hagePotatoes:GetChildren()) do
+                                if obj.Name == "BATATAautomatica" and (obj:IsA("MeshPart") or obj:IsA("BasePart")) then
+                                    table.insert(potatoes, obj)
+                                end
+                            end
+                        end)
+                        return potatoes
+                    end
+
+                    local HARVEST_NEEDED = 10
+
+                    while AutoPotatoEnabled do
+                        local character = player.Character
+                        if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
+                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
+
+                        -- Etape 1 : Chris + quete
+                        local chrisCFrame = getChrisPosition()
+                        if chrisCFrame then
+                            local chrisPos = chrisCFrame.Position
+                            hrp.CFrame = CFrame.new(chrisPos + Vector3.new(0, 0, 3), chrisPos)
+                            hrp.Velocity = Vector3.new(0,0,0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        end
+                        task.wait(0.5)
+                        SendPotatoQuest()
+                        task.wait(2)
+                        if not AutoPotatoEnabled then break end
+
+                        -- Etape 2 : Equiper Hoe
+                        local hoe = nil
+                        local waitTime = 0
+                        while not hoe and waitTime < 5 and AutoPotatoEnabled do
+                            hoe = findHoe()
+                            if not hoe then task.wait(0.3); waitTime = waitTime + 0.3 end
+                        end
+                        if not hoe or not AutoPotatoEnabled then continue end
+                        character = player.Character
+                        humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and hoe.Parent ~= character then
+                            humanoid:EquipTool(hoe)
+                            task.wait(0.3)
+                        end
+                        if not AutoPotatoEnabled then break end
+
+                        -- Etape 3 : Recolter 10 fois (10 x 3 = 30 patates)
+                        local harvestCount = 0
+                        while harvestCount < HARVEST_NEEDED and AutoPotatoEnabled do
+                            character = player.Character
+                            hrp = character and character:FindFirstChild("HumanoidRootPart")
+                            if not hrp then break end
+                            humanoid = character:FindFirstChildOfClass("Humanoid")
+                            if not humanoid or humanoid.Health <= 0 then break end
+
+                            local potatoes = findPotatoes()
+                            if #potatoes == 0 then task.wait(1); continue end
+
+                            for _, potato in ipairs(potatoes) do
+                                if not AutoPotatoEnabled then break end
+                                if harvestCount >= HARVEST_NEEDED then break end
+                                character = player.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+                                humanoid = character:FindFirstChildOfClass("Humanoid")
+                                if not humanoid or humanoid.Health <= 0 then break end
+
+                                local potatoPos = potato.Position
+                                local behindPos = potatoPos + Vector3.new(0, 0, 3)
+                                hrp.CFrame = CFrame.new(behindPos, potatoPos)
+                                hrp.Velocity = Vector3.new(0,0,0)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                                task.wait(0.3)
+
+                                hoe = findHoe()
+                                if hoe then
+                                    if hoe.Parent ~= character then
+                                        humanoid:EquipTool(hoe)
+                                        task.wait(0.2)
+                                    end
+                                    pcall(function() hoe:Activate() end)
+                                end
+                                harvestCount = harvestCount + 1
+                                task.wait(1)
+                            end
+                        end
+                        if not AutoPotatoEnabled then break end
+
+                        -- Etape 4 : Rendre a Chris
+                        character = player.Character
+                        hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then continue end
+                        chrisCFrame = getChrisPosition()
+                        if chrisCFrame then
+                            local chrisPos = chrisCFrame.Position
+                            hrp.CFrame = CFrame.new(chrisPos + Vector3.new(0, 0, 3), chrisPos)
+                            hrp.Velocity = Vector3.new(0,0,0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        end
+                        task.wait(3)
+                        if not AutoPotatoEnabled then break end
+                    end
+                end)
+            end
+        end,
+    })
+
+    -- ─── Toggle 3 : Auto Farm Steak lvl 60 ────────────────────────
+    local AutoSteakEnabled = false
+    -- Table globale des citizens deja livres (persiste meme si toggle off/on)
+    local allDeliveredCitizens = {}
+
+    OtherQuestTab:Toggle({
+        Title = "Auto Farm Steak lvl 60",
+        Value = false,
+        Callback = function(state)
+            AutoSteakEnabled = state
+            if state then
+                task.spawn(function()
+                    local player = game:GetService("Players").LocalPlayer
+
+                    local function getChefJackPosition()
+                        local npcsFolder = workspace:FindFirstChild("NPCs")
+                        if not npcsFolder then return nil end
+                        local jack = npcsFolder:FindFirstChild("Chef Jack")
+                        if not jack then return nil end
+                        if jack.PrimaryPart then return jack.PrimaryPart.CFrame end
+                        local hrp = jack:FindFirstChild("HumanoidRootPart")
+                        if hrp then return hrp.CFrame end
+                        local head = jack:FindFirstChild("Head")
+                        if head then return head.CFrame end
+                        for _, part in ipairs(jack:GetDescendants()) do
+                            if part:IsA("BasePart") then return part.CFrame end
+                        end
+                        return nil
+                    end
+
+                    local function SendSteakQuest()
+                        pcall(function()
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = {
+                                    ["Extra"]   = "DeliverSteak",
+                                    ["Type"]    = "questpls",
+                                    ["NpcName"] = "Chef Jack"
+                                }
+                            }
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                        end)
+                    end
+
+                    local function findPlate()
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") and (tool.Name == "Plat" or tool.Name == "Plate" or tool.Name:lower():find("plat")) then
+                                    return tool
+                                end
+                            end
+                        end
+                        local char = player.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") and (tool.Name == "Plat" or tool.Name == "Plate" or tool.Name:lower():find("plat")) then
+                                    return tool
+                                end
+                            end
+                        end
+                        return nil
+                    end
+
+                    local function findQuestTool()
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then return tool end
+                            end
+                        end
+                        local char = player.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") and tool.Name ~= "Fist" then return tool end
+                            end
+                        end
+                        return nil
+                    end
+
+                    local function getCitizenID(npc)
+                        local part = npc:FindFirstChild("HumanoidRootPart")
+                            or npc:FindFirstChild("Head")
+                            or npc:FindFirstChild("Torso")
+                        if part then
+                            local pos = part.Position
+                            return string.format("%.1f_%.1f_%.1f", pos.X, pos.Y, pos.Z)
+                        end
+                        return tostring(npc:GetFullName())
+                    end
+
+                    local function findAvailableCitizens()
+                        local citizens = {}
+                        pcall(function()
+                            local wandering = workspace:FindFirstChild("WanderingNPCs")
+                            if not wandering then return end
+                            for _, npc in ipairs(wandering:GetChildren()) do
+                                if npc.Name == "Citizen" then
+                                    local citizenID = getCitizenID(npc)
+                                    if allDeliveredCitizens[npc] or allDeliveredCitizens[citizenID] then
+                                        continue
+                                    end
+                                    local npcPart = npc:FindFirstChild("HumanoidRootPart")
+                                        or npc:FindFirstChild("Head")
+                                        or npc:FindFirstChild("Torso")
+                                        or npc:FindFirstChild("UpperTorso")
+                                    if not npcPart and npc:IsA("Model") then npcPart = npc.PrimaryPart end
+                                    if not npcPart then
+                                        for _, part in ipairs(npc:GetDescendants()) do
+                                            if part:IsA("BasePart") then npcPart = part; break end
+                                        end
+                                    end
+                                    if npcPart then
+                                        table.insert(citizens, {Model = npc, Part = npcPart, ID = citizenID})
+                                    end
+                                end
+                            end
+                        end)
+                        return citizens
+                    end
+
+                    local function countTotalCitizens()
+                        local count = 0
+                        pcall(function()
+                            local wandering = workspace:FindFirstChild("WanderingNPCs")
+                            if not wandering then return end
+                            for _, npc in ipairs(wandering:GetChildren()) do
+                                if npc.Name == "Citizen" then count = count + 1 end
+                            end
+                        end)
+                        return count
+                    end
+
+                    local function countDelivered()
+                        local count = 0
+                        for _ in pairs(allDeliveredCitizens) do count = count + 1 end
+                        return math.floor(count / 2)
+                    end
+
+                    while AutoSteakEnabled do
+                        local character = player.Character
+                        if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
+                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
+
+                        -- Reset si tous livres
+                        local total = countTotalCitizens()
+                        local delivered = countDelivered()
+                        if delivered >= total and total > 0 then
+                            allDeliveredCitizens = {}
+                        end
+                        local available = findAvailableCitizens()
+                        if #available < 5 then
+                            allDeliveredCitizens = {}
+                            task.wait(0.5)
+                        end
+
+                        -- Etape 1 : Chef Jack + quete
+                        local jackCFrame = getChefJackPosition()
+                        if jackCFrame then
+                            local jackPos = jackCFrame.Position
+                            hrp.CFrame = CFrame.new(jackPos + Vector3.new(0, 0, 3), jackPos)
+                            hrp.Velocity = Vector3.new(0,0,0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        end
+                        task.wait(0.5)
+                        SendSteakQuest()
+                        task.wait(3)
+                        if not AutoSteakEnabled then break end
+
+                        -- Etape 2 : Equiper le tool
+                        local plate = nil
+                        local waitTime = 0
+                        while not plate and waitTime < 10 and AutoSteakEnabled do
+                            plate = findPlate()
+                            if not plate then plate = findQuestTool() end
+                            if not plate then task.wait(0.5); waitTime = waitTime + 0.5 end
+                        end
+                        if not plate then task.wait(1); continue end
+                        if not AutoSteakEnabled then break end
+                        character = player.Character
+                        humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            if plate.Parent ~= character then humanoid:EquipTool(plate) end
+                            task.wait(0.5)
+                        end
+                        if not AutoSteakEnabled then break end
+
+                        -- Etape 3 : Livrer a 5 Citizens jamais livres
+                        local deliverCount = 0
+                        while deliverCount < 5 and AutoSteakEnabled do
+                            character = player.Character
+                            hrp = character and character:FindFirstChild("HumanoidRootPart")
+                            if not hrp then break end
+                            humanoid = character:FindFirstChildOfClass("Humanoid")
+                            if not humanoid or humanoid.Health <= 0 then break end
+
+                            local citizens = findAvailableCitizens()
+                            if #citizens == 0 then
+                                allDeliveredCitizens = {}
+                                task.wait(0.5)
+                                citizens = findAvailableCitizens()
+                                if #citizens == 0 then task.wait(1); continue end
+                            end
+
+                            for _, citizen in ipairs(citizens) do
+                                if not AutoSteakEnabled then break end
+                                if deliverCount >= 5 then break end
+                                if allDeliveredCitizens[citizen.Model] or allDeliveredCitizens[citizen.ID] then continue end
+
+                                character = player.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+                                humanoid = character:FindFirstChildOfClass("Humanoid")
+                                if not humanoid or humanoid.Health <= 0 then break end
+
+                                plate = findPlate() or findQuestTool()
+                                if plate then
+                                    if plate.Parent ~= character then
+                                        humanoid:EquipTool(plate)
+                                        task.wait(0.3)
+                                    end
+                                end
+
+                                local citizenPos = citizen.Part.Position
+                                hrp.CFrame = CFrame.new(citizenPos + Vector3.new(0, 0, -3), citizenPos)
+                                hrp.Velocity = Vector3.new(0,0,0)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+
+                                pcall(function()
+                                    firetouchinterest(hrp, citizen.Part, 0)
+                                    task.wait(0.1)
+                                    firetouchinterest(hrp, citizen.Part, 1)
+                                end)
+
+                                allDeliveredCitizens[citizen.Model] = true
+                                allDeliveredCitizens[citizen.ID]    = true
+                                deliverCount = deliverCount + 1
+                                task.wait(0.5)
+                            end
+                        end
+                        if not AutoSteakEnabled then break end
+
+                        -- Etape 4 : Rendre a Chef Jack
+                        character = player.Character
+                        hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then continue end
+                        jackCFrame = getChefJackPosition()
+                        if jackCFrame then
+                            local jackPos = jackCFrame.Position
+                            hrp.CFrame = CFrame.new(jackPos + Vector3.new(0, 0, 3), jackPos)
+                            hrp.Velocity = Vector3.new(0,0,0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        end
+                        task.wait(3)
+                        if not AutoSteakEnabled then break end
+                    end
+                end)
+            end
+        end,
+    })
+
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET TELEPORT
     -- ════════════════════════════════════════════════════════════════
@@ -1073,11 +1380,11 @@ local function OnKeyValidated(licenseData)
         FontWeight = Enum.FontWeight.SemiBold,
     })
     local TeleportLocations = {
-        {Name = "Magic Tree", Position = Vector3.new(-1037.99, 67.40, -2099)},
-        {Name = "Clever Village", Position = Vector3.new(-0.98, 45.30, -404.23)},
-        {Name = "Tower", Position = Vector3.new(85.70, 55.07, -1093.18)},
+        {Name = "Magic Tree",     Position = Vector3.new(-1037.99, 67.40, -2099)},
+        {Name = "Clever Village", Position = Vector3.new(-0.98,    45.30,  -404.23)},
+        {Name = "Tower",          Position = Vector3.new(85.70,    55.07, -1093.18)},
     }
-    local selectedTeleportName = nil
+    local selectedTeleportName     = nil
     local selectedTeleportPosition = nil
     local function getTeleportNames()
         local names = {}
@@ -1088,15 +1395,13 @@ local function OnKeyValidated(licenseData)
     end
     local function getPositionByName(name)
         for _, location in ipairs(TeleportLocations) do
-            if location.Name == name then
-                return location.Position
-            end
+            if location.Name == name then return location.Position end
         end
         return nil
     end
     local teleportNames = getTeleportNames()
     if #teleportNames > 0 then
-        selectedTeleportName = teleportNames[1]
+        selectedTeleportName     = teleportNames[1]
         selectedTeleportPosition = getPositionByName(selectedTeleportName)
     end
     TeleportTab:Dropdown({
@@ -1104,7 +1409,7 @@ local function OnKeyValidated(licenseData)
         Values = teleportNames,
         Value = selectedTeleportName or "",
         Callback = function(value)
-            selectedTeleportName = value
+            selectedTeleportName     = value
             selectedTeleportPosition = getPositionByName(value)
         end,
     })
@@ -1112,8 +1417,7 @@ local function OnKeyValidated(licenseData)
         Title = "Teleporter",
         Callback = function()
             if selectedTeleportPosition then
-                local player = game:GetService("Players").LocalPlayer
-                local character = player.Character
+                local character = game:GetService("Players").LocalPlayer.Character
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     hrp.CFrame = CFrame.new(selectedTeleportPosition)
@@ -1121,6 +1425,7 @@ local function OnKeyValidated(licenseData)
             end
         end,
     })
+
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET STATS
     -- ════════════════════════════════════════════════════════════════
@@ -1136,12 +1441,7 @@ local function OnKeyValidated(licenseData)
     local StatsRunning = {}
     local function SendStat(statName)
         pcall(function()
-            local args = {
-                [1] = "addPoints",
-                [2] = statName,
-                [3] = 1,
-                [4] = false
-            }
+            local args = {[1]="addPoints", [2]=statName, [3]=1, [4]=false}
             game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
         end)
     end
@@ -1159,133 +1459,34 @@ local function OnKeyValidated(licenseData)
         StatsRunning[statName] = false
     end
     StatsTab:Toggle({
-        Title = "Auto Power",
-        Value = false,
-        Callback = function(state)
-            if state then StartStatLoop("Power") else StopStatLoop("Power") end
-        end,
+        Title = "Auto Power",     Value = false,
+        Callback = function(state) if state then StartStatLoop("Power")      else StopStatLoop("Power")      end end,
     })
     StatsTab:Toggle({
-        Title = "Auto Vitality",
-        Value = false,
-        Callback = function(state)
-            if state then StartStatLoop("Vitality") else StopStatLoop("Vitality") end
-        end,
+        Title = "Auto Vitality",  Value = false,
+        Callback = function(state) if state then StartStatLoop("Vitality")   else StopStatLoop("Vitality")   end end,
     })
     StatsTab:Toggle({
-        Title = "Auto Dexterity",
-        Value = false,
-        Callback = function(state)
-            if state then StartStatLoop("Dexterity") else StopStatLoop("Dexterity") end
-        end,
+        Title = "Auto Dexterity", Value = false,
+        Callback = function(state) if state then StartStatLoop("Dexterity")  else StopStatLoop("Dexterity")  end end,
     })
     StatsTab:Toggle({
-        Title = "Auto Mana",
-        Value = false,
-        Callback = function(state)
-            if state then StartStatLoop("Mana") else StopStatLoop("Mana") end
-        end,
+        Title = "Auto Mana",      Value = false,
+        Callback = function(state) if state then StartStatLoop("Mana")       else StopStatLoop("Mana")       end end,
     })
     StatsTab:Toggle({
-        Title = "Auto Luck",
-        Value = false,
-        Callback = function(state)
-            if state then StartStatLoop("Luck") else StopStatLoop("Luck") end
-        end,
+        Title = "Auto Luck",      Value = false,
+        Callback = function(state) if state then StartStatLoop("Luck")       else StopStatLoop("Luck")       end end,
     })
+
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET PARAMETRES
-    -- ════════════════════════════════════════════════════════════════
-    local SettingsTab = SettingsSection:Tab({
-        Title = "Parametres",
-        Icon = "settings",
-    })
-    SettingsTab:Section({
-        Title = "Apparence",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
-    })
-    local themeNames = {}
-    local ok, themes = pcall(function() return WindUI:GetThemes() end)
-    if ok and themes then
-        for themeName, _ in pairs(themes) do
-            table.insert(themeNames, themeName)
-        end
-        table.sort(themeNames)
-    end
-    if #themeNames == 0 then
-        themeNames = {"Dark", "Light", "Mocha", "Aqua"}
-    end
-    local ThemeDropdown = SettingsTab:Dropdown({
-        Title = "Theme",
-        Values = themeNames,
-        Value = "Dark",
-        Callback = function(selectedTheme)
-            WindUI:SetTheme(selectedTheme)
-            pcall(function() ThemeDropdown:Close() end)
-        end,
-    })
-    SettingsTab:Slider({
-        Title = "Transparence",
-        Value = {
-            Min = 0,
-            Max = 1,
-            Default = 0.2,
-        },
-        Step = 0.1,
-        Callback = function(value)
-            pcall(function() Window:SetBackgroundTransparency(value) end)
-        end,
-    })
-    SettingsTab:Divider()
-    SettingsTab:Section({
-        Title = "Systeme",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
-    })
-    SettingsTab:Button({
-        Title = "Detruire le Hub",
-        Icon = "trash-2",
-        Color = Color3.fromHex("#ff4830"),
-        Callback = function()
-            Window:Dialog({
-                Title = "Confirmation",
-                Content = "Veux-tu vraiment fermer le hub ?",
-                Buttons = {
-                    {
-                        Title = "Oui",
-                        Variant = "Primary",
-                        Callback = function()
-                            AutoFarmEnabled = false
-                            removeFloat()
-                            restoreMobHitboxes()
-                            restoreToolHitbox()
-                            if jumpConnection then
-                                jumpConnection:Disconnect()
-                            end
-                            for _, conn in ipairs(connections) do
-                                pcall(function() conn:Disconnect() end)
-                            end
-                            pcall(function()
-                                local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                                if hum then hum.WalkSpeed = 16 end
-                            end)
-                            Window:Destroy()
-                        end,
-                    },
-                    {
-                        Title = "Non",
-                        Variant = "Tertiary",
-                    },
-                },
-            })
-        end,
-    })
-    -- ════════════════════════════════════════════════════════════════
-    -- CALLBACKS WINDOW
+    -- CALLBACKS WINDOW (destruction propre)
     -- ════════════════════════════════════════════════════════════════
     Window:OnDestroy(function()
-        AutoFarmEnabled = false
+        AutoFarmEnabled  = false
+        AutoWoodEnabled  = false
+        AutoPotatoEnabled = false
+        AutoSteakEnabled = false
         removeFloat()
         restoreMobHitboxes()
         restoreToolHitbox()
@@ -1301,6 +1502,7 @@ local function OnKeyValidated(licenseData)
         end)
         warn("[Hub] Hub detruit proprement.")
     end)
+
     warn("[Hub] Hyper Hub charge avec succes!")
 end
 
@@ -1348,10 +1550,7 @@ local function TryVerify(key)
 end
 
 -- ══════════════════════════════════════════════════════════════════
--- ✅ MODIFICATION : le GUI s'affiche TOUJOURS en premier.
--- Si une clé sauvegardée existe, elle est pré-remplie dans l'input
--- et un message indique qu'elle est prête à être vérifiée.
--- L'utilisateur clique lui-même sur "Verify Key".
+-- AFFICHAGE DU GUI (clé pré-remplie si sauvegardée)
 -- ══════════════════════════════════════════════════════════════════
 if savedKeyClean then
     StatusLabel.Text = "🔑 Saved key detected — click Verify"
