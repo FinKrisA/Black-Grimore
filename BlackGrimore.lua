@@ -671,32 +671,6 @@ local function OnKeyValidated(licenseData)
     })
 
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET ACCUEIL
-    -- ════════════════════════════════════════════════════════════════
-    local HomeTab = MainSection:Tab({
-        Title = "Accueil",
-        Icon = "home",
-    })
-    HomeTab:Section({
-        Title = "Bienvenue, " .. LocalPlayer.DisplayName .. " !",
-        TextSize = 22,
-        FontWeight = Enum.FontWeight.Bold,
-    })
-    HomeTab:Section({
-        Title = "Username: @" .. LocalPlayer.Name .. "  |  UserID: " .. LocalPlayer.UserId,
-        TextSize = 14,
-        TextTransparency = 0.35,
-    })
-    HomeTab:Divider()
-    HomeTab:Paragraph({
-        Title = "Hyper Hub",
-        Desc = "Auto-Farm | Kill Aura | ESP | Tools\nProfite bien du hub !",
-        Image = "zap",
-        ImageSize = 20,
-        Color = Color3.fromHex("#30ff6a"),
-    })
-
-    -- ════════════════════════════════════════════════════════════════
     -- ONGLET AUTO-FARM
     -- ════════════════════════════════════════════════════════════════
     local CombatTab = MainSection:Tab({
@@ -780,6 +754,156 @@ local function OnKeyValidated(licenseData)
             warn("[Hub] Tools trouves: " .. #newTools)
         end,
     })
+    
+    -- ════════════════════════════════════════════════════════════════
+    -- ONGLET QUEST
+    -- Contient les 3 nouveaux toggles du Script B
+    -- ════════════════════════════════════════════════════════════════
+    local QuestTab = MainSection:Tab({
+        Title = "Quest",
+        Icon = "scroll-text",
+    })
+        QuestTab:Section({
+        Title = "Quests",
+        TextSize = 18,
+        FontWeight = Enum.FontWeight.SemiBold,
+    })
+
+-- ─── Toggle 1 : Defeat Thief (Johnny) ────────────────────────
+local AutoThiefEnabled = false
+
+    QuestTab:Toggle({
+    Title = "Defeat Thief lvl 200",
+    Value = false,
+    Callback = function(state)
+        AutoThiefEnabled = state
+        if state then
+            task.spawn(function()
+                local function SendThiefQuest()
+                    pcall(function()
+                        local args = {
+                            [1] = "pcgamer4",
+                            [2] = {
+                                ["Extra"]   = "DefeatThief",
+                                ["Type"]    = "questpls",
+                                ["NpcName"] = "Johnny"
+                            }
+                        }
+                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                    end)
+                end
+
+                while AutoThiefEnabled do
+                    SendThiefQuest()
+                    task.wait(5)
+                    if not AutoThiefEnabled then break end
+                end
+            end)
+        end
+    end,
+})
+
+-- ─── Toggle 2 : Defeat Fire Boar (Renna) ─────────────────────
+local AutoFireBoarEnabled = false
+
+    QuestTab:Toggle({
+    Title = "Defeat Fire Boar lvl 300",
+    Value = false,
+    Callback = function(state)
+        AutoFireBoarEnabled = state
+        if state then
+            task.spawn(function()
+                local function SendFireBoarQuest()
+                    pcall(function()
+                        local args = {
+                            [1] = "pcgamer4",
+                            [2] = {
+                                ["Extra"]   = "DefeatFire Boar",
+                                ["Type"]    = "questpls",
+                                ["NpcName"] = "Renna"
+                            }
+                        }
+                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                    end)
+                end
+
+                while AutoFireBoarEnabled do
+                    SendFireBoarQuest()
+                    task.wait(5)
+                    if not AutoFireBoarEnabled then break end
+                end
+            end)
+        end
+    end,
+})
+
+-- ─── Toggle 4 : Defeat Golem (Davrqwy) ───────────────────────
+local AutoGolemEnabled = false
+
+    QuestTab:Toggle({
+    Title = "Defeat Golem lvl 1200",
+    Value = false,
+    Callback = function(state)
+        AutoGolemEnabled = state
+        if state then
+            task.spawn(function()
+                local function SendGolemQuest()
+                    pcall(function()
+                        local args = {
+                            [1] = "pcgamer4",
+                            [2] = {
+                                ["Extra"]   = "DefeatGolem",
+                                ["Type"]    = "questpls",
+                                ["NpcName"] = "Davrqwy"
+                            }
+                        }
+                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                    end)
+                end
+
+                while AutoGolemEnabled do
+                    SendGolemQuest()
+                    task.wait(5)
+                    if not AutoGolemEnabled then break end
+                end
+            end)
+        end
+    end,
+})
+
+-- ─── Toggle : Defeat Security Golem ───────────
+local AutoSecurityGolemEnabled = false
+
+OtherQuestTab:Toggle({
+    Title = "Defeat Security Golem lvl 2500",
+    Value = false,
+    Callback = function(state)
+        AutoSecurityGolemEnabled = state
+        if state then
+            task.spawn(function()
+                local function SendSecurityGolemQuest()
+                    pcall(function()
+                        local args = {
+                            [1] = "pcgamer4",
+                            [2] = {
+                                ["Extra"]   = "DefeatSecurity Golem",
+                                ["Type"]    = "questpls",
+                                ["NpcName"] = "ahmedBOOM234"
+                            }
+                        }
+                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                    end)
+                end
+
+                while AutoSecurityGolemEnabled do
+                    SendSecurityGolemQuest()
+                    task.wait(5)
+                    if not AutoSecurityGolemEnabled then break end
+                end
+            end)
+        end
+    end,
+})
 
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET OTHER QUEST (ex-Money, sans Auto Delivery GreenJuice)
@@ -919,7 +1043,7 @@ local function OnKeyValidated(licenseData)
             end
         end,
     })
-
+    
     -- ─── Toggle 2 : Auto Farm Potatoes lvl 30 ─────────────────────
     local AutoPotatoEnabled = false
 
@@ -1355,6 +1479,173 @@ local function OnKeyValidated(licenseData)
             end
         end,
     })
+
+-- ─── Toggle : Block NotificationFrame ─────────────────────
+local BlockNotifEnabled = true
+local _notifConns = {}
+local _notifHeartbeat = nil
+local _origSetCore = nil
+
+OtherQuestTab:Toggle({
+    Title = "Block Notifications",
+    Value = true,
+    Callback = function(state)
+        BlockNotifEnabled = state
+
+        if state then
+            task.spawn(function()
+                local Players    = game:GetService("Players")
+                local CoreGui    = game:GetService("CoreGui")
+                local RunService = game:GetService("RunService")
+                local StarterGui = game:GetService("StarterGui")
+
+                local LocalPlayer = Players.LocalPlayer
+                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
+
+                local TARGETS = {
+                    "NotificationFrame",
+                    "PopupFrame",
+                }
+
+                local function isTarget(obj)
+                    if not obj or not obj.Name then return false end
+                    for _, name in ipairs(TARGETS) do
+                        if obj.Name == name then return true end
+                    end
+                    return false
+                end
+
+                local function BlockObj(obj)
+                    if not obj then return end
+                    pcall(function()
+                        if obj:IsA("GuiObject") then
+                            obj.Visible = false
+                            obj.BackgroundTransparency = 1
+                            obj.Position = UDim2.new(99, 0, 99, 0)
+                        end
+                        for _, c in ipairs(obj:GetDescendants()) do
+                            pcall(function()
+                                if c:IsA("GuiObject") then
+                                    c.Visible = false
+                                    c.BackgroundTransparency = 1
+                                end
+                                if c:IsA("TextLabel") or c:IsA("TextButton") then
+                                    c.TextTransparency = 1
+                                end
+                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
+                                    c.ImageTransparency = 1
+                                end
+                            end)
+                        end
+                        task.delay(0.02, function()
+                            pcall(function()
+                                if obj and obj.Parent then obj:Destroy() end
+                            end)
+                        end)
+                    end)
+                end
+
+                -- Scan initial
+                pcall(function()
+                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+                pcall(function()
+                    for _, obj in ipairs(CoreGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+
+                -- DescendantAdded PlayerGui
+                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
+                    if isTarget(obj) then BlockObj(obj) end
+                end)
+                table.insert(_notifConns, c1)
+
+                -- DescendantAdded CoreGui
+                pcall(function()
+                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
+                        if isTarget(obj) then BlockObj(obj) end
+                    end)
+                    table.insert(_notifConns, c2)
+                end)
+
+                -- ChildAdded PlayerGui (nouveaux ScreenGui)
+                local c3 = PlayerGui.ChildAdded:Connect(function(child)
+                    if child:IsA("ScreenGui") then
+                        local c4 = child.DescendantAdded:Connect(function(obj)
+                            if isTarget(obj) then BlockObj(obj) end
+                        end)
+                        table.insert(_notifConns, c4)
+                        task.wait(0.05)
+                        for _, obj in ipairs(child:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end
+                end)
+                table.insert(_notifConns, c3)
+
+                -- ScreenGui existants
+                pcall(function()
+                    for _, sg in ipairs(PlayerGui:GetChildren()) do
+                        if sg:IsA("ScreenGui") then
+                            local c5 = sg.DescendantAdded:Connect(function(obj)
+                                if isTarget(obj) then BlockObj(obj) end
+                            end)
+                            table.insert(_notifConns, c5)
+                        end
+                    end
+                end)
+
+                -- Hook SetCore
+                _origSetCore = StarterGui.SetCore
+                pcall(function()
+                    StarterGui.SetCore = function(self, t, ...)
+                        if t == "SendNotification" then return end
+                        return _origSetCore(self, t, ...)
+                    end
+                end)
+
+                -- Heartbeat 0.2s — filet de sécurité
+                local timer = 0
+                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
+                    if not BlockNotifEnabled then return end
+                    timer = timer + dt
+                    if timer < 0.2 then return end
+                    timer = 0
+                    pcall(function()
+                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end)
+                end)
+
+            end)
+
+        else
+            -- ARRÊT — Déconnecter tout
+            for _, conn in ipairs(_notifConns) do
+                pcall(function() conn:Disconnect() end)
+            end
+            _notifConns = {}
+
+            if _notifHeartbeat then
+                pcall(function() _notifHeartbeat:Disconnect() end)
+                _notifHeartbeat = nil
+            end
+
+            -- Restaurer SetCore
+            pcall(function()
+                local StarterGui = game:GetService("StarterGui")
+                if _origSetCore then
+                    StarterGui.SetCore = _origSetCore
+                    _origSetCore = nil
+                end
+            end)
+        end
+    end,
+})
 
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET TELEPORT
