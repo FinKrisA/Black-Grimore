@@ -62,6 +62,21 @@ local function ValidateKey(cleanKey)
 end
 
 -- ══════════════════════════════════════════════════════════════════
+-- PRÉ-CHARGEMENT WINDUI EN ARRIÈRE-PLAN (FIX LENTEUR)
+-- ══════════════════════════════════════════════════════════════════
+local WindUILoaded = false
+local WindUI = nil
+task.spawn(function()
+    local ok, result = pcall(function()
+        return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    end)
+    if ok then
+        WindUI = result
+        WindUILoaded = true
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════════
 -- KEY SYSTEM GUI
 -- ══════════════════════════════════════════════════════════════════
 local IsActivating = false
@@ -91,6 +106,22 @@ local KeyFrame = Make("Frame", {
 }, ScreenGui)
 Make("UICorner", {CornerRadius=UDim.new(0,14)}, KeyFrame)
 Make("UIStroke", {Color=Color3.fromRGB(60,60,90), Thickness=1.5}, KeyFrame)
+
+local dragging, dragStart, startPos = false, nil, nil
+KeyFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging  = true
+        dragStart = input.Position
+        startPos  = KeyFrame.Position
+    end
+end)
+KeyFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
 UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
     or input.UserInputType == Enum.UserInputType.Touch) then
@@ -98,6 +129,7 @@ UIS.InputChanged:Connect(function(input)
         KeyFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y)
     end
 end)
+
 -- Topbar
 local Topbar = Make("Frame", {
     Size=UDim2.new(1,0,0,44),
@@ -189,127 +221,83 @@ local InputContainer = Make("Frame", {
     BackgroundColor3=Color3.fromRGB(26,26,40),
     BorderSizePixel=0, ZIndex=12, LayoutOrder=5,
 }, Content)
-Make("UICorner", {CornerRadius=UDim.new(0,10)}, InputContainer)
-local InputStroke = Make("UIStroke", {Color=Color3.fromRGB(45,45,68), Thickness=1.2}, InputContainer)
-local savedKey      = KeyFile("load")
-local savedKeyClean = savedKey and savedKey:upper():gsub("%s+","") or nil
+Make("UICorner", {CornerRadius=UDim.new(0,8)}, InputContainer)
+Make("UIStroke", {Color=Color3.fromRGB(60,60,90), Thickness=1}, InputContainer)
 local InputBox = Make("TextBox", {
-    Size=UDim2.new(1,-16,1,0), Position=UDim2.new(0,8,0,0),
+    Size=UDim2.new(1,-16,1,0),
+    Position=UDim2.new(0,8,0,0),
     BackgroundTransparency=1,
-    Text=savedKeyClean or "",
-    PlaceholderText="Ex: XXXX-XXXX-XXXX-XXXX",
+    Text="", PlaceholderText="XXXX-XXXX-XXXX-XXXX",
     TextColor3=Color3.new(1,1,1),
-    PlaceholderColor3=Color3.fromRGB(70,70,95),
-    Font=Enum.Font.GothamBold, TextSize=m(10,13),
+    PlaceholderColor3=Color3.fromRGB(80,80,110),
+    Font=Enum.Font.GothamBold, TextSize=m(10,14),
+    TextXAlignment=Enum.TextXAlignment.Center,
     ClearTextOnFocus=false, ZIndex=13,
 }, InputContainer)
-InputBox.Focused:Connect(function()
-    Tween(InputStroke, {Color=Color3.fromRGB(99,102,241)})
-    Tween(InputContainer, {BackgroundColor3=Color3.fromRGB(30,30,50)})
-end)
-InputBox.FocusLost:Connect(function()
-    Tween(InputStroke, {Color=Color3.fromRGB(45,45,68)})
-    Tween(InputContainer, {BackgroundColor3=Color3.fromRGB(26,26,40)})
-end)
 -- Bouton Verify
 local VerifyBtn = Make("TextButton", {
-    Size=UDim2.new(1,0,0,m(34,48)),
+    Size=UDim2.new(1,0,0,m(34,44)),
     BackgroundColor3=Color3.fromRGB(99,102,241),
-    Text="Verify Key", TextColor3=Color3.new(1,1,1),
+    Text="Verify Key",
+    TextColor3=Color3.new(1,1,1),
     Font=Enum.Font.GothamBold, TextSize=m(11,15),
-    BorderSizePixel=0, AutoButtonColor=false,
-    ZIndex=12, LayoutOrder=6,
+    BorderSizePixel=0, ZIndex=12, LayoutOrder=6,
+    AutoButtonColor=false,
 }, Content)
-Make("UICorner", {CornerRadius=UDim.new(0,10)}, VerifyBtn)
-Make("UIGradient", {
-    Color=ColorSequence.new(Color3.fromHex("#6366f1"), Color3.fromHex("#8b5cf6")),
-    Rotation=90
-}, VerifyBtn)
-AddHover(VerifyBtn, Color3.fromRGB(99,102,241), Color3.fromRGB(120,124,255))
+Make("UICorner", {CornerRadius=UDim.new(0,8)}, VerifyBtn)
+AddHover(VerifyBtn, Color3.fromRGB(99,102,241), Color3.fromRGB(120,123,255))
 -- Status
 local StatusLabel = Make("TextLabel", {
-    Size=UDim2.new(1,0,0,m(20,24)), BackgroundTransparency=1,
+    Size=UDim2.new(1,0,0,m(18,24)), BackgroundTransparency=1,
     Text="", TextColor3=Color3.fromRGB(100,100,130),
-    Font=Enum.Font.GothamBold, TextSize=m(9,12),
-    TextWrapped=true, TextXAlignment=Enum.TextXAlignment.Center,
-    ZIndex=12, LayoutOrder=7,
-}, Content)
--- Bouton Close
-local CloseBtn = Make("TextButton", {
-    Size=UDim2.new(1,0,0,m(30,42)),
-    BackgroundColor3=Color3.fromRGB(28,28,42),
-    Text="", BorderSizePixel=0, AutoButtonColor=false,
-    ZIndex=12, LayoutOrder=8,
-}, Content)
-Make("UICorner", {CornerRadius=UDim.new(0,10)}, CloseBtn)
-local closeStroke = Make("UIStroke", {Color=Color3.fromRGB(60,60,90), Thickness=1.2}, CloseBtn)
-Make("TextLabel", {
-    Size=UDim2.new(0,20,1,0), Position=UDim2.new(0.5,-36,0,0),
-    BackgroundTransparency=1, Text="✕",
-    TextColor3=Color3.fromRGB(200,80,80),
-    Font=Enum.Font.GothamBold, TextSize=m(12,15),
-    TextXAlignment=Enum.TextXAlignment.Center, ZIndex=13
-}, CloseBtn)
-Make("TextLabel", {
-    Size=UDim2.new(0,60,1,0), Position=UDim2.new(0.5,-16,0,0),
-    BackgroundTransparency=1, Text="Close",
-    TextColor3=Color3.fromRGB(180,180,210),
-    Font=Enum.Font.GothamBold, TextSize=m(10,13),
-    TextXAlignment=Enum.TextXAlignment.Left, ZIndex=13
-}, CloseBtn)
-CloseBtn.MouseEnter:Connect(function()
-    Tween(CloseBtn, {BackgroundColor3=Color3.fromRGB(50,22,22)})
-    Tween(closeStroke, {Color=Color3.fromRGB(180,50,50)})
-end)
-CloseBtn.MouseLeave:Connect(function()
-    Tween(CloseBtn, {BackgroundColor3=Color3.fromRGB(28,28,42)})
-    Tween(closeStroke, {Color=Color3.fromRGB(60,60,90)})
-end)
-CloseBtn.MouseButton1Click:Connect(function()
-    Tween(KeyFrame, {BackgroundTransparency=1}, 0.3)
-    Tween(Overlay,  {BackgroundTransparency=1}, 0.3)
-    task.wait(0.35)
-    ScreenGui:Destroy()
-    Blur:Destroy()
-end)
--- Discord
-Make("TextLabel", {
-    Size=UDim2.new(1,0,0,16), BackgroundTransparency=1,
-    Text="discord.gg/hyperhub",
-    TextColor3=Color3.fromRGB(50,50,75),
-    Font=Enum.Font.Gotham, TextSize=m(8,10),
+    Font=Enum.Font.Gotham, TextSize=m(8,11),
     TextXAlignment=Enum.TextXAlignment.Center,
-    ZIndex=12, LayoutOrder=9,
+    TextWrapped=true, ZIndex=12, LayoutOrder=7,
 }, Content)
 
 -- ══════════════════════════════════════════════════════════════════
 -- CALLBACK POST-VALIDATION : lance le hub principal
 -- ══════════════════════════════════════════════════════════════════
 local function OnKeyValidated(licenseData)
+
     -- ════════════════════════════════════════════════════════════════
-    -- CHARGEMENT DE WINDUI
+    -- ATTENTE WINDUI (déjà en cours de chargement en arrière-plan)
     -- ════════════════════════════════════════════════════════════════
-    local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    local timeout = 0
+    while not WindUILoaded and timeout < 15 do
+        task.wait(0.5)
+        timeout = timeout + 0.5
+    end
+    if not WindUI then
+        warn("[Hub] WindUI failed to load.")
+        return
+    end
+
     -- ════════════════════════════════════════════════════════════════
     -- SERVICES ROBLOX
     -- ════════════════════════════════════════════════════════════════
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
+    local Players         = game:GetService("Players")
+    local RunService      = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
-    local LocalPlayer = Players.LocalPlayer
+    local LocalPlayer     = Players.LocalPlayer
+
     -- ════════════════════════════════════════════════════════════════
     -- VARIABLES GLOBALES
     -- ════════════════════════════════════════════════════════════════
-    local AutoFarmEnabled = false
-    local AutoFarmSpeed = 0.2
-    local selectedMobName = ""
+    local AutoFarmEnabled  = false
+    local AutoFarmSpeed    = 0.2
+    local selectedMobName  = ""
     local selectedToolName = ""
-    local lastFarmHeight = 0
+    local lastFarmHeight   = 0
     local originalToolSize = nil
     local originalMobSizes = {}
-    local floatingBodyPos = nil
-    local jumpConnection = nil
-    local connections = {}
+    local floatingBodyPos  = nil
+    local jumpConnection   = nil
+    local connections      = {}
+    local AutoWoodEnabled  = false
+    local AutoPotatoEnabled = false
+    local AutoSteakEnabled = false
+    local allDeliveredCitizens = {}
 
     -- ════════════════════════════════════════════════════════════════
     -- CONFIGURATION WINDUI
@@ -339,9 +327,7 @@ local function OnKeyValidated(licenseData)
                 end
             end
         end
-        if #names == 0 then
-            table.insert(names, "Aucun mob trouve")
-        end
+        if #names == 0 then table.insert(names, "Aucun mob trouve") end
         return names
     end
     local function getToolNames()
@@ -358,41 +344,21 @@ local function OnKeyValidated(licenseData)
         end
         for _, locInfo in ipairs(searchLocations) do
             local location = locInfo[1]
-            local locName = locInfo[2]
+            local locName  = locInfo[2]
             for _, obj in ipairs(location:GetChildren()) do
                 if obj:IsA("Tool") or obj:IsA("HopperBin") then
                     table.insert(tools, obj.Name .. " [" .. locName .. "]")
                 end
             end
-            for _, obj in ipairs(location:GetDescendants()) do
-                if obj:IsA("Tool") or obj:IsA("HopperBin") then
-                    local alreadyFound = false
-                    for _, t in ipairs(tools) do
-                        if t == obj.Name .. " [" .. locName .. "]" then
-                            alreadyFound = true
-                            break
-                        end
-                    end
-                    if not alreadyFound then
-                        table.insert(tools, obj.Name .. " [" .. locName .. "]")
-                    end
-                end
-            end
         end
-        if #tools == 0 then
-            table.insert(tools, "Aucun tool trouve")
-        end
+        if #tools == 0 then table.insert(tools, "Aucun tool trouve") end
         return tools
     end
     local function getToolByName(name)
         local cleanName = name:match("^(.+) %[") or name
         local searchLocations = {}
-        if LocalPlayer.Character then
-            table.insert(searchLocations, LocalPlayer.Character)
-        end
-        if LocalPlayer:FindFirstChild("Backpack") then
-            table.insert(searchLocations, LocalPlayer.Backpack)
-        end
+        if LocalPlayer.Character then table.insert(searchLocations, LocalPlayer.Character) end
+        if LocalPlayer:FindFirstChild("Backpack") then table.insert(searchLocations, LocalPlayer.Backpack) end
         for _, location in ipairs(searchLocations) do
             for _, obj in ipairs(location:GetDescendants()) do
                 if (obj:IsA("Tool") or obj:IsA("HopperBin")) and obj.Name == cleanName then
@@ -405,9 +371,7 @@ local function OnKeyValidated(licenseData)
     local function equipTool(tool)
         if tool and tool:IsA("Tool") then
             local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:EquipTool(tool)
-            end
+            if humanoid then humanoid:EquipTool(tool) end
         end
     end
     local function applyToolHitbox(toolName)
@@ -416,9 +380,7 @@ local function OnKeyValidated(licenseData)
                 local oldTool = getToolByName(selectedToolName)
                 if oldTool then
                     local handle = oldTool:FindFirstChild("Handle")
-                    if handle then
-                        handle.Size = originalToolSize
-                    end
+                    if handle then handle.Size = originalToolSize end
                 end
             end)
             originalToolSize = nil
@@ -438,9 +400,7 @@ local function OnKeyValidated(licenseData)
         for mob, originalSize in pairs(originalMobSizes) do
             pcall(function()
                 local hrp = mob:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.Size = originalSize
-                end
+                if hrp then hrp.Size = originalSize end
             end)
         end
         originalMobSizes = {}
@@ -462,9 +422,7 @@ local function OnKeyValidated(licenseData)
     end
     local function removeFloat()
         if floatingBodyPos then
-            pcall(function()
-                floatingBodyPos:Destroy()
-            end)
+            pcall(function() floatingBodyPos:Destroy() end)
             floatingBodyPos = nil
         end
     end
@@ -532,9 +490,7 @@ local function OnKeyValidated(licenseData)
                     if tool then
                         pcall(function()
                             for _, part in ipairs(tool:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    part.Transparency = 1
-                                end
+                                if part:IsA("BasePart") then part.Transparency = 1 end
                             end
                         end)
                     end
@@ -602,9 +558,7 @@ local function OnKeyValidated(licenseData)
                     end
                 else
                     if lastFarmHeight > 0 then
-                        if not floatingBodyPos then
-                            floatAtHeight(lastFarmHeight)
-                        end
+                        if not floatingBodyPos then floatAtHeight(lastFarmHeight) end
                         myHRP.Velocity = Vector3.new(0, 0, 0)
                         myHRP.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                     end
@@ -637,7 +591,7 @@ local function OnKeyValidated(licenseData)
     })
 
     -- ════════════════════════════════════════════════════════════════
-    -- TIMER / LICENSE TAG
+    -- LICENSE TAG
     -- ════════════════════════════════════════════════════════════════
     local licenseType = licenseData and licenseData.type or "perm"
     local expiresAt   = licenseData and licenseData.expiresAt
@@ -654,585 +608,290 @@ local function OnKeyValidated(licenseData)
         Color = isPerm and Color3.fromHex("#22c55e") or Color3.fromHex("#f59e0b"),
         Border = true,
     })
-    if not isPerm then
+    if not isPerm and expiresAt then
         task.spawn(function()
-            while task.wait(1) do
-                pcall(function() licenseTag:SetTitle("⏱ " .. GetRemaining()) end)
+            while true do
+                task.wait(1)
+                if licenseTag and licenseTag.SetTitle then
+                    licenseTag:SetTitle("⏱ " .. GetRemaining())
+                end
             end
         end)
     end
 
     -- ════════════════════════════════════════════════════════════════
-    -- SECTIONS & TABS
+    -- SECTION PRINCIPALE
     -- ════════════════════════════════════════════════════════════════
     local MainSection = Window:Section({
-        Title = "Principal",
-        Opened = true,
+        Title = "Hyper Hub",
+        Icon  = "zap",
     })
 
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET AUTO-FARM
+    -- ✅ FIX : TOUS LES TABS DÉCLARÉS ICI, AVANT LEURS TOGGLES
     -- ════════════════════════════════════════════════════════════════
-    local CombatTab = MainSection:Tab({
-        Title = "Auto-Farm",
-        Icon = "swords",
+    local FarmTab = MainSection:Tab({
+        Title = "Auto Farm",
+        Icon  = "sword",
     })
-    CombatTab:Section({
-        Title = "Auto-Farm",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
+    local QuestTab = MainSection:Tab({
+        Title = "Quest",
+        Icon  = "swords",
     })
-    local mobDropdown = CombatTab:Dropdown({
-        Title = "Mob cible",
-        Values = getMobNames(),
-        Value = "",
+    local OtherQuestTab = MainSection:Tab({
+        Title = "Other Quest",
+        Icon  = "scroll-text",
+    })
+    local TeleportTab = MainSection:Tab({
+        Title = "Teleport",
+        Icon  = "map-pin",
+    })
+    local StatsTab = MainSection:Tab({
+        Title = "Stats",
+        Icon  = "chart-no-axes-combined",
+    })
+
+    -- ════════════════════════════════════════════════════════════════
+    -- CONTENU FARMTAB
+    -- ════════════════════════════════════════════════════════════════
+    FarmTab:Section({
+        Title = "Auto Farm", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold,
+    })
+    local mobNames  = getMobNames()
+    local toolNames = getToolNames()
+    if #mobNames  > 0 then selectedMobName  = mobNames[1]  end
+    if #toolNames > 0 then selectedToolName = toolNames[1] end
+    FarmTab:Dropdown({
+        Title = "Mob", Values = mobNames, Value = selectedMobName or "",
+        Callback = function(value) selectedMobName = value end,
+    })
+    FarmTab:Dropdown({
+        Title = "Tool", Values = toolNames, Value = selectedToolName or "",
         Callback = function(value)
-            selectedMobName = value
+            selectedToolName = value
+            if value ~= "" and value ~= "Aucun tool trouve" then
+                applyToolHitbox(value)
+            end
         end,
     })
-    CombatTab:Button({
-        Title = "Rafraichir les mobs",
-        Icon = "refresh-cw",
-        Callback = function()
-            local newMobs = getMobNames()
-            mobDropdown:Refresh(newMobs)
-            warn("[Hub] Mobs rafraichis: " .. #newMobs)
-        end,
+    FarmTab:Slider({
+        Title = "Speed", Min = 0, Max = 2, Default = 0.2,
+        Callback = function(value) AutoFarmSpeed = value end,
     })
-    CombatTab:Toggle({
-        Title = "Activer Auto-Farm",
-        Value = false,
+    FarmTab:Toggle({
+        Title = "Enable Auto Farm", Value = false,
         Callback = function(state)
             AutoFarmEnabled = state
             if not state then
                 removeFloat()
                 restoreMobHitboxes()
                 restoreToolHitbox()
-            else
-                if selectedToolName ~= "" and selectedToolName ~= "Aucun tool trouve" then
-                    applyToolHitbox(selectedToolName)
-                end
             end
         end,
     })
-    CombatTab:Slider({
-        Title = "Vitesse d'attaque",
-        Value = {
-            Min = 0.05,
-            Max = 2,
-            Default = 0.2,
-        },
-        Step = 0.05,
-        Callback = function(value)
-            AutoFarmSpeed = value
-        end,
-    })
-    CombatTab:Divider()
-    CombatTab:Section({
-        Title = "Tools",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
-    })
-    local toolDropdown = CombatTab:Dropdown({
-        Title = "Tool a utiliser",
-        Values = getToolNames(),
-        Value = "",
-        Callback = function(value)
-            restoreToolHitbox()
-            selectedToolName = value
-            if value ~= "Aucun tool trouve" then
-                applyToolHitbox(value)
-            end
-        end,
-    })
-    CombatTab:Button({
-        Title = "Rafraichir les tools",
-        Icon = "refresh-cw",
-        Callback = function()
-            local newTools = getToolNames()
-            toolDropdown:Refresh(newTools)
-            warn("[Hub] Tools trouves: " .. #newTools)
-        end,
-    })
-    
+
     -- ════════════════════════════════════════════════════════════════
-    -- ✅ FIX : ONGLET QUEST déclaré ICI, avant tout QuestTab:Toggle()
+    -- CONTENU QUESTTAB
     -- ════════════════════════════════════════════════════════════════
-    local QuestTab = MainSection:Tab({
-        Title = "Quest",
-        Icon  = "swords",
-    })
     QuestTab:Section({
-        Title      = "Auto Quests",
-        TextSize   = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
+        Title = "Auto Quests", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold,
     })
 
--- ─── Toggle 1 : Defeat Thief (Johnny) ────────────────────────
-local AutoThiefEnabled = false
-
+    -- Toggle 1 : Fire Boar
+    local AutoFireBoarEnabled = false
     QuestTab:Toggle({
-    Title = "Defeat Thief lvl 200",
-    Value = false,
-    Callback = function(state)
-        AutoThiefEnabled = state
-        if state then
-            task.spawn(function()
-                local function SendThiefQuest()
-                    pcall(function()
-                        local args = {
-                            [1] = "pcgamer4",
-                            [2] = {
-                                ["Extra"]   = "DefeatThief",
-                                ["Type"]    = "questpls",
-                                ["NpcName"] = "Johnny"
+        Title = "Defeat Fire Boar lvl 300",
+        Value = false,
+        Callback = function(state)
+            AutoFireBoarEnabled = state
+            if state then
+                task.spawn(function()
+                    local function SendFireBoarQuest()
+                        pcall(function()
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = { ["Extra"] = "DefeatFire Boar", ["Type"] = "questpls", ["NpcName"] = "Renna" }
                             }
-                        }
-                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
-                    end)
-                end
-
-                while AutoThiefEnabled do
-                    SendThiefQuest()
-                    task.wait(5)
-                    if not AutoThiefEnabled then break end
-                end
-            end)
-        end
-    end,
-})
-
--- ─── Toggle 2 : Defeat Fire Boar (Renna) ─────────────────────
-local AutoFireBoarEnabled = false
-
-QuestTab:Toggle({
-    Title = "Defeat Fire Boar lvl 300",
-    Value = false,
-    Callback = function(state)
-        AutoFireBoarEnabled = state
-        if state then
-            task.spawn(function()
-                local function SendFireBoarQuest()
-                    pcall(function()
-                        local args = {
-                            [1] = "pcgamer4",
-                            [2] = {
-                                ["Extra"]   = "DefeatFire Boar",
-                                ["Type"]    = "questpls",
-                                ["NpcName"] = "Renna"
-                            }
-                        }
-                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
-                    end)
-                end
-                while AutoFireBoarEnabled do
-                    SendFireBoarQuest()
-                    task.wait(5)
-                    if not AutoFireBoarEnabled then break end
-                end
-            end)
-        end
-    end,
-})
-
--- ─── Toggle 3 : Defeat Golem (Davrqwy) ───────────────────────
-local AutoGolemEnabled = false
-
-QuestTab:Toggle({
-    Title = "Defeat Golem lvl 1200",
-    Value = false,
-    Callback = function(state)
-        AutoGolemEnabled = state
-        if state then
-            task.spawn(function()
-                local function SendGolemQuest()
-                    pcall(function()
-                        local args = {
-                            [1] = "pcgamer4",
-                            [2] = {
-                                ["Extra"]   = "DefeatGolem",
-                                ["Type"]    = "questpls",
-                                ["NpcName"] = "Davrqwy"
-                            }
-                        }
-                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
-                    end)
-                end
-                while AutoGolemEnabled do
-                    SendGolemQuest()
-                    task.wait(5)
-                    if not AutoGolemEnabled then break end
-                end
-            end)
-        end
-    end,
-})
-
--- ─── Toggle 3 : Defeat Security Golem ─────────────────────────
-local AutoSecurityGolemEnabled = false
-
-OtherQuestTab:Toggle({
-    Title = "Defeat Security Golem lvl 2500",
-    Value = false,
-    Callback = function(state)
-        AutoSecurityGolemEnabled = state
-        if state then
-            task.spawn(function()
-                local function SendSecurityGolemQuest()
-                    pcall(function()
-                        local args = {
-                            [1] = "pcgamer4",
-                            [2] = {
-                                ["Extra"]   = "DefeatSecurity Golem",
-                                ["Type"]    = "questpls",
-                                ["NpcName"] = "ahmedBOOM234"
-                            }
-                        }
-                        game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
-                    end)
-                end
-                while AutoSecurityGolemEnabled do
-                    SendSecurityGolemQuest()
-                    task.wait(5)
-                    if not AutoSecurityGolemEnabled then break end
-                end
-            end)
-        end
-    end,
-})
-
--- ─── Toggle 4 : Block Notifications ───────────────────────────
-local BlockNotifEnabled = true
-local _notifConns = {}
-local _notifHeartbeat = nil
-local _origSetCore = nil
-
-OtherQuestTab:Toggle({
-    Title = "Block Notifications",
-    Value = true,
-    Callback = function(state)
-        BlockNotifEnabled = state
-
-        if state then
-            task.spawn(function()
-                local Players    = game:GetService("Players")
-                local CoreGui    = game:GetService("CoreGui")
-                local RunService = game:GetService("RunService")
-                local StarterGui = game:GetService("StarterGui")
-                local LocalPlayer = Players.LocalPlayer
-                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
-                local TARGETS = { "NotificationFrame", "PopupFrame" }
-
-                local function isTarget(obj)
-                    if not obj or not obj.Name then return false end
-                    for _, name in ipairs(TARGETS) do
-                        if obj.Name == name then return true end
-                    end
-                    return false
-                end
-
-                local function BlockObj(obj)
-                    if not obj then return end
-                    pcall(function()
-                        if obj:IsA("GuiObject") then
-                            obj.Visible = false
-                            obj.BackgroundTransparency = 1
-                            obj.Position = UDim2.new(99, 0, 99, 0)
-                        end
-                        for _, c in ipairs(obj:GetDescendants()) do
-                            pcall(function()
-                                if c:IsA("GuiObject") then
-                                    c.Visible = false
-                                    c.BackgroundTransparency = 1
-                                end
-                                if c:IsA("TextLabel") or c:IsA("TextButton") then
-                                    c.TextTransparency = 1
-                                end
-                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
-                                    c.ImageTransparency = 1
-                                end
-                            end)
-                        end
-                        task.delay(0.02, function()
-                            pcall(function()
-                                if obj and obj.Parent then obj:Destroy() end
-                            end)
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
                         end)
-                    end)
-                end
-
-                pcall(function()
-                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                    while AutoFireBoarEnabled do
+                        SendFireBoarQuest()
+                        task.wait(5)
+                        if not AutoFireBoarEnabled then break end
                     end
                 end)
-                pcall(function()
-                    for _, obj in ipairs(CoreGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
-                    end
-                end)
-
-                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
-                    if isTarget(obj) then BlockObj(obj) end
-                end)
-                table.insert(_notifConns, c1)
-
-                pcall(function()
-                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
-                        if isTarget(obj) then BlockObj(obj) end
-                    end)
-                    table.insert(_notifConns, c2)
-                end)
-
-                local c3 = PlayerGui.ChildAdded:Connect(function(child)
-                    if child:IsA("ScreenGui") then
-                        local c4 = child.DescendantAdded:Connect(function(obj)
-                            if isTarget(obj) then BlockObj(obj) end
-                        end)
-                        table.insert(_notifConns, c4)
-                        task.wait(0.05)
-                        for _, obj in ipairs(child:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end
-                end)
-                table.insert(_notifConns, c3)
-
-                pcall(function()
-                    for _, sg in ipairs(PlayerGui:GetChildren()) do
-                        if sg:IsA("ScreenGui") then
-                            local c5 = sg.DescendantAdded:Connect(function(obj)
-                                if isTarget(obj) then BlockObj(obj) end
-                            end)
-                            table.insert(_notifConns, c5)
-                        end
-                    end
-                end)
-
-                _origSetCore = StarterGui.SetCore
-                pcall(function()
-                    StarterGui.SetCore = function(self, t, ...)
-                        if t == "SendNotification" then return end
-                        return _origSetCore(self, t, ...)
-                    end
-                end)
-
-                local timer = 0
-                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
-                    if not BlockNotifEnabled then return end
-                    timer = timer + dt
-                    if timer < 0.2 then return end
-                    timer = 0
-                    pcall(function()
-                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end)
-                end)
-            end)
-        else
-            for _, conn in ipairs(_notifConns) do
-                pcall(function() conn:Disconnect() end)
             end
-            _notifConns = {}
-            if _notifHeartbeat then
-                pcall(function() _notifHeartbeat:Disconnect() end)
-                _notifHeartbeat = nil
-            end
-            pcall(function()
-                local StarterGui = game:GetService("StarterGui")
-                if _origSetCore then
-                    StarterGui.SetCore = _origSetCore
-                    _origSetCore = nil
-                end
-            end)
-        end
-    end,
-})
-
--- ─── Toggle : Block NotificationFrame ─────────────────────
-local BlockNotifEnabled = true
-local _notifConns = {}
-local _notifHeartbeat = nil
-local _origSetCore = nil
-
-    QuestTab:Toggle({
-    Title = "Block Quests Notifications",
-    Value = true,
-    Callback = function(state)
-        BlockNotifEnabled = state
-
-        if state then
-            task.spawn(function()
-                local Players    = game:GetService("Players")
-                local CoreGui    = game:GetService("CoreGui")
-                local RunService = game:GetService("RunService")
-                local StarterGui = game:GetService("StarterGui")
-
-                local LocalPlayer = Players.LocalPlayer
-                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
-
-                local TARGETS = {
-                    "NotificationFrame",
-                    "PopupFrame",
-                }
-
-                local function isTarget(obj)
-                    if not obj or not obj.Name then return false end
-                    for _, name in ipairs(TARGETS) do
-                        if obj.Name == name then return true end
-                    end
-                    return false
-                end
-
-                local function BlockObj(obj)
-                    if not obj then return end
-                    pcall(function()
-                        if obj:IsA("GuiObject") then
-                            obj.Visible = false
-                            obj.BackgroundTransparency = 1
-                            obj.Position = UDim2.new(99, 0, 99, 0)
-                        end
-                        for _, c in ipairs(obj:GetDescendants()) do
-                            pcall(function()
-                                if c:IsA("GuiObject") then
-                                    c.Visible = false
-                                    c.BackgroundTransparency = 1
-                                end
-                                if c:IsA("TextLabel") or c:IsA("TextButton") then
-                                    c.TextTransparency = 1
-                                end
-                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
-                                    c.ImageTransparency = 1
-                                end
-                            end)
-                        end
-                        task.delay(0.02, function()
-                            pcall(function()
-                                if obj and obj.Parent then obj:Destroy() end
-                            end)
-                        end)
-                    end)
-                end
-
-                -- Scan initial
-                pcall(function()
-                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
-                    end
-                end)
-                pcall(function()
-                    for _, obj in ipairs(CoreGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
-                    end
-                end)
-
-                -- DescendantAdded PlayerGui
-                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
-                    if isTarget(obj) then BlockObj(obj) end
-                end)
-                table.insert(_notifConns, c1)
-
-                -- DescendantAdded CoreGui
-                pcall(function()
-                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
-                        if isTarget(obj) then BlockObj(obj) end
-                    end)
-                    table.insert(_notifConns, c2)
-                end)
-
-                -- ChildAdded PlayerGui (nouveaux ScreenGui)
-                local c3 = PlayerGui.ChildAdded:Connect(function(child)
-                    if child:IsA("ScreenGui") then
-                        local c4 = child.DescendantAdded:Connect(function(obj)
-                            if isTarget(obj) then BlockObj(obj) end
-                        end)
-                        table.insert(_notifConns, c4)
-                        task.wait(0.05)
-                        for _, obj in ipairs(child:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end
-                end)
-                table.insert(_notifConns, c3)
-
-                -- ScreenGui existants
-                pcall(function()
-                    for _, sg in ipairs(PlayerGui:GetChildren()) do
-                        if sg:IsA("ScreenGui") then
-                            local c5 = sg.DescendantAdded:Connect(function(obj)
-                                if isTarget(obj) then BlockObj(obj) end
-                            end)
-                            table.insert(_notifConns, c5)
-                        end
-                    end
-                end)
-
-                -- Hook SetCore
-                _origSetCore = StarterGui.SetCore
-                pcall(function()
-                    StarterGui.SetCore = function(self, t, ...)
-                        if t == "SendNotification" then return end
-                        return _origSetCore(self, t, ...)
-                    end
-                end)
-
-                -- Heartbeat 0.2s — filet de sécurité
-                local timer = 0
-                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
-                    if not BlockNotifEnabled then return end
-                    timer = timer + dt
-                    if timer < 0.2 then return end
-                    timer = 0
-                    pcall(function()
-                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end)
-                end)
-
-            end)
-
-        else
-            -- ARRÊT — Déconnecter tout
-            for _, conn in ipairs(_notifConns) do
-                pcall(function() conn:Disconnect() end)
-            end
-            _notifConns = {}
-
-            if _notifHeartbeat then
-                pcall(function() _notifHeartbeat:Disconnect() end)
-                _notifHeartbeat = nil
-            end
-
-            -- Restaurer SetCore
-            pcall(function()
-                local StarterGui = game:GetService("StarterGui")
-                if _origSetCore then
-                    StarterGui.SetCore = _origSetCore
-                    _origSetCore = nil
-                end
-            end)
-        end
-    end,
-})
-
-    -- ════════════════════════════════════════════════════════════════
-    -- ✅ FIX : ONGLET OTHER QUEST déclaré ICI, avant tout OtherQuestTab:Toggle()
-    -- ════════════════════════════════════════════════════════════════
-    local OtherQuestTab = MainSection:Tab({
-        Title = "Other Quest",
-        Icon  = "scroll-text",
+        end,
     })
+
+    -- Toggle 2 : Golem
+    local AutoGolemEnabled = false
+    QuestTab:Toggle({
+        Title = "Defeat Golem lvl 1200",
+        Value = false,
+        Callback = function(state)
+            AutoGolemEnabled = state
+            if state then
+                task.spawn(function()
+                    local function SendGolemQuest()
+                        pcall(function()
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = { ["Extra"] = "DefeatGolem", ["Type"] = "questpls", ["NpcName"] = "Davrqwy" }
+                            }
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                        end)
+                    end
+                    while AutoGolemEnabled do
+                        SendGolemQuest()
+                        task.wait(5)
+                        if not AutoGolemEnabled then break end
+                    end
+                end)
+            end
+        end,
+    })
+
+    -- ════════════════════════════════════════════════════════════════
+    -- CONTENU OTHERQUESTTAB
+    -- ════════════════════════════════════════════════════════════════
     OtherQuestTab:Section({
-        Title      = "Other Quests",
-        TextSize   = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
+        Title = "Other Quests", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold,
     })
 
-    -- ─── Toggle 1 : Cut Woods lvl 1 ───────────────────────────────
-    local AutoWoodEnabled = false
+    -- Toggle 1 : Security Golem
+    local AutoSecurityGolemEnabled = false
+    OtherQuestTab:Toggle({
+        Title = "Defeat Security Golem lvl 2500",
+        Value = false,
+        Callback = function(state)
+            AutoSecurityGolemEnabled = state
+            if state then
+                task.spawn(function()
+                    local function SendSecurityGolemQuest()
+                        pcall(function()
+                            local args = {
+                                [1] = "pcgamer4",
+                                [2] = { ["Extra"] = "DefeatSecurity Golem", ["Type"] = "questpls", ["NpcName"] = "ahmedBOOM234" }
+                            }
+                            game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
+                        end)
+                    end
+                    while AutoSecurityGolemEnabled do
+                        SendSecurityGolemQuest()
+                        task.wait(5)
+                        if not AutoSecurityGolemEnabled then break end
+                    end
+                end)
+            end
+        end,
+    })
 
+    -- Toggle 2 : Block Notifications
+    local BlockNotifEnabled = true
+    local _notifConns = {}
+    local _notifHeartbeat = nil
+    local _origSetCore = nil
+    OtherQuestTab:Toggle({
+        Title = "Block Notifications",
+        Value = true,
+        Callback = function(state)
+            BlockNotifEnabled = state
+            if state then
+                task.spawn(function()
+                    local CoreGui    = game:GetService("CoreGui")
+                    local RunService = game:GetService("RunService")
+                    local StarterGui = game:GetService("StarterGui")
+                    local lp         = game:GetService("Players").LocalPlayer
+                    local pGui       = lp:WaitForChild("PlayerGui")
+                    local TARGETS    = { "NotificationFrame", "PopupFrame" }
+                    local function isTarget(obj)
+                        if not obj or not obj.Name then return false end
+                        for _, name in ipairs(TARGETS) do
+                            if obj.Name == name then return true end
+                        end
+                        return false
+                    end
+                    local function BlockObj(obj)
+                        if not obj then return end
+                        pcall(function()
+                            if obj:IsA("GuiObject") then
+                                obj.Visible = false
+                                obj.BackgroundTransparency = 1
+                                obj.Position = UDim2.new(99, 0, 99, 0)
+                            end
+                            for _, c in ipairs(obj:GetDescendants()) do
+                                pcall(function()
+                                    if c:IsA("GuiObject") then c.Visible = false; c.BackgroundTransparency = 1 end
+                                    if c:IsA("TextLabel") or c:IsA("TextButton") then c.TextTransparency = 1 end
+                                    if c:IsA("ImageLabel") or c:IsA("ImageButton") then c.ImageTransparency = 1 end
+                                end)
+                            end
+                            task.delay(0.02, function()
+                                pcall(function() if obj and obj.Parent then obj:Destroy() end end)
+                            end)
+                        end)
+                    end
+                    pcall(function()
+                        for _, obj in ipairs(pGui:GetDescendants()) do if isTarget(obj) then BlockObj(obj) end end
+                    end)
+                    pcall(function()
+                        for _, obj in ipairs(CoreGui:GetDescendants()) do if isTarget(obj) then BlockObj(obj) end end
+                    end)
+                    local c1 = pGui.DescendantAdded:Connect(function(obj) if isTarget(obj) then BlockObj(obj) end end)
+                    table.insert(_notifConns, c1)
+                    pcall(function()
+                        local c2 = CoreGui.DescendantAdded:Connect(function(obj) if isTarget(obj) then BlockObj(obj) end end)
+                        table.insert(_notifConns, c2)
+                    end)
+                    local c3 = pGui.ChildAdded:Connect(function(child)
+                        if child:IsA("ScreenGui") then
+                            local c4 = child.DescendantAdded:Connect(function(obj) if isTarget(obj) then BlockObj(obj) end end)
+                            table.insert(_notifConns, c4)
+                            task.wait(0.05)
+                            for _, obj in ipairs(child:GetDescendants()) do if isTarget(obj) then BlockObj(obj) end end
+                        end
+                    end)
+                    table.insert(_notifConns, c3)
+                    pcall(function()
+                        for _, sg in ipairs(pGui:GetChildren()) do
+                            if sg:IsA("ScreenGui") then
+                                local c5 = sg.DescendantAdded:Connect(function(obj) if isTarget(obj) then BlockObj(obj) end end)
+                                table.insert(_notifConns, c5)
+                            end
+                        end
+                    end)
+                    _origSetCore = StarterGui.SetCore
+                    pcall(function()
+                        StarterGui.SetCore = function(self, t, ...)
+                            if t == "SendNotification" then return end
+                            return _origSetCore(self, t, ...)
+                        end
+                    end)
+                    local timer = 0
+                    _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
+                        if not BlockNotifEnabled then return end
+                        timer = timer + dt
+                        if timer < 0.2 then return end
+                        timer = 0
+                        pcall(function()
+                            for _, obj in ipairs(pGui:GetDescendants()) do if isTarget(obj) then BlockObj(obj) end end
+                        end)
+                    end)
+                end)
+            else
+                for _, conn in ipairs(_notifConns) do pcall(function() conn:Disconnect() end) end
+                _notifConns = {}
+                if _notifHeartbeat then pcall(function() _notifHeartbeat:Disconnect() end); _notifHeartbeat = nil end
+                pcall(function()
+                    if _origSetCore then game:GetService("StarterGui").SetCore = _origSetCore; _origSetCore = nil end
+                end)
+            end
+        end,
+    })
+
+    -- Toggle 3 : Cut Woods lvl 1
     OtherQuestTab:Toggle({
         Title = "Cut Woods lvl 1",
         Value = false,
@@ -1241,7 +900,6 @@ local _origSetCore = nil
             if state then
                 task.spawn(function()
                     local player = game:GetService("Players").LocalPlayer
-
                     local TreePositions = {
                         {Position = Vector3.new(-92.12, 45.75, -526.68),  LookAt = Vector3.new(-92.12,  45.75, -527.68)},
                         {Position = Vector3.new(-106.17, 45.75, -526.59), LookAt = Vector3.new(-106.17, 45.75, -527.59)},
@@ -1251,21 +909,15 @@ local _origSetCore = nil
                     }
                     local NpcPosition = Vector3.new(-118.06, 45.25, -532.47)
                     local NpcLookAt   = Vector3.new(-119.06, 45.25, -532.47)
-
                     local function SendWoodQuest()
                         pcall(function()
                             local args = {
                                 [1] = "pcgamer4",
-                                [2] = {
-                                    ["Extra"]   = "CutWoods",
-                                    ["Type"]    = "questpls",
-                                    ["NpcName"] = "Father Orfi"
-                                }
+                                [2] = { ["Extra"] = "CutWoods", ["Type"] = "questpls", ["NpcName"] = "Father Orfi" }
                             }
                             game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
                         end)
                     end
-
                     local function findMAxe()
                         local backpack = player:FindFirstChild("Backpack")
                         if backpack then
@@ -1279,7 +931,6 @@ local _origSetCore = nil
                         end
                         return nil
                     end
-
                     while AutoWoodEnabled do
                         local character = player.Character
                         if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
@@ -1287,8 +938,6 @@ local _origSetCore = nil
                         if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
                         local humanoid = character:FindFirstChildOfClass("Humanoid")
                         if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
-
-                        -- Etape 1 : NPC + quete
                         hrp.CFrame = CFrame.new(NpcPosition, NpcLookAt)
                         hrp.Velocity = Vector3.new(0,0,0)
                         hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
@@ -1296,8 +945,6 @@ local _origSetCore = nil
                         SendWoodQuest()
                         task.wait(2)
                         if not AutoWoodEnabled then break end
-
-                        -- Etape 2 : Equiper MAxe
                         local axe = nil
                         local waitTime = 0
                         while not axe and waitTime < 5 and AutoWoodEnabled do
@@ -1312,52 +959,35 @@ local _origSetCore = nil
                             task.wait(0.3)
                         end
                         if not AutoWoodEnabled then break end
-
-                        -- Etape 3 : Couper les 5 arbres
                         for _, treeData in ipairs(TreePositions) do
                             if not AutoWoodEnabled then break end
                             character = player.Character
                             hrp = character and character:FindFirstChild("HumanoidRootPart")
                             if not hrp then break end
-                            humanoid = character:FindFirstChildOfClass("Humanoid")
-                            if not humanoid or humanoid.Health <= 0 then break end
-                            axe = findMAxe()
-                            if axe then
-                                if axe.Parent ~= character then
-                                    humanoid:EquipTool(axe)
-                                    task.wait(0.2)
-                                end
-                            end
                             hrp.CFrame = CFrame.new(treeData.Position, treeData.LookAt)
                             hrp.Velocity = Vector3.new(0,0,0)
                             hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                            task.wait()
+                            task.wait(0.3)
                             axe = findMAxe()
                             if axe then
+                                character = player.Character
+                                humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                                if humanoid and axe.Parent ~= character then
+                                    humanoid:EquipTool(axe)
+                                    task.wait(0.2)
+                                end
                                 pcall(function() axe:Activate() end)
                             end
-                            task.wait(2)
+                            task.wait(1.5)
                         end
-                        if not AutoWoodEnabled then break end
-
-                        -- Etape 4 : Rendre au NPC
-                        character = player.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then continue end
-                        hrp.CFrame = CFrame.new(NpcPosition, NpcLookAt)
-                        hrp.Velocity = Vector3.new(0,0,0)
-                        hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                        task.wait(3)
-                        if not AutoWoodEnabled then break end
+                        task.wait(1)
                     end
                 end)
             end
         end,
     })
-    
-    -- ─── Toggle 2 : Auto Farm Potatoes lvl 30 ─────────────────────
-    local AutoPotatoEnabled = false
 
+    -- Toggle 4 : Auto Farm Potatoes
     OtherQuestTab:Toggle({
         Title = "Auto Farm Potatoes lvl 30",
         Value = false,
@@ -1366,7 +996,6 @@ local _origSetCore = nil
             if state then
                 task.spawn(function()
                     local player = game:GetService("Players").LocalPlayer
-
                     local function getChrisPosition()
                         local npcsFolder = workspace:FindFirstChild("NPCs")
                         if not npcsFolder then return nil end
@@ -1382,21 +1011,15 @@ local _origSetCore = nil
                         end
                         return nil
                     end
-
                     local function SendPotatoQuest()
                         pcall(function()
                             local args = {
                                 [1] = "pcgamer4",
-                                [2] = {
-                                    ["Extra"]   = "GetPotatoes",
-                                    ["Type"]    = "questpls",
-                                    ["NpcName"] = "Chris"
-                                }
+                                [2] = { ["Extra"] = "GetPotatoes", ["Type"] = "questpls", ["NpcName"] = "Chris" }
                             }
                             game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
                         end)
                     end
-
                     local function findHoe()
                         local backpack = player:FindFirstChild("Backpack")
                         if backpack then
@@ -1410,7 +1033,6 @@ local _origSetCore = nil
                         end
                         return nil
                     end
-
                     local function findPotatoes()
                         local potatoes = {}
                         pcall(function()
@@ -1426,9 +1048,7 @@ local _origSetCore = nil
                         end)
                         return potatoes
                     end
-
                     local HARVEST_NEEDED = 10
-
                     while AutoPotatoEnabled do
                         local character = player.Character
                         if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
@@ -1436,8 +1056,6 @@ local _origSetCore = nil
                         if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
                         local humanoid = character:FindFirstChildOfClass("Humanoid")
                         if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
-
-                        -- Etape 1 : Chris + quete
                         local chrisCFrame = getChrisPosition()
                         if chrisCFrame then
                             local chrisPos = chrisCFrame.Position
@@ -1449,8 +1067,6 @@ local _origSetCore = nil
                         SendPotatoQuest()
                         task.wait(2)
                         if not AutoPotatoEnabled then break end
-
-                        -- Etape 2 : Equiper Hoe
                         local hoe = nil
                         local waitTime = 0
                         while not hoe and waitTime < 5 and AutoPotatoEnabled do
@@ -1465,8 +1081,6 @@ local _origSetCore = nil
                             task.wait(0.3)
                         end
                         if not AutoPotatoEnabled then break end
-
-                        -- Etape 3 : Recolter 10 fois (10 x 3 = 30 patates)
                         local harvestCount = 0
                         while harvestCount < HARVEST_NEEDED and AutoPotatoEnabled do
                             character = player.Character
@@ -1474,10 +1088,8 @@ local _origSetCore = nil
                             if not hrp then break end
                             humanoid = character:FindFirstChildOfClass("Humanoid")
                             if not humanoid or humanoid.Health <= 0 then break end
-
                             local potatoes = findPotatoes()
                             if #potatoes == 0 then task.wait(1); continue end
-
                             for _, potato in ipairs(potatoes) do
                                 if not AutoPotatoEnabled then break end
                                 if harvestCount >= HARVEST_NEEDED then break end
@@ -1486,20 +1098,15 @@ local _origSetCore = nil
                                 if not hrp then break end
                                 humanoid = character:FindFirstChildOfClass("Humanoid")
                                 if not humanoid or humanoid.Health <= 0 then break end
-
                                 local potatoPos = potato.Position
                                 local behindPos = potatoPos + Vector3.new(0, 0, 3)
                                 hrp.CFrame = CFrame.new(behindPos, potatoPos)
                                 hrp.Velocity = Vector3.new(0,0,0)
                                 hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
                                 task.wait(0.3)
-
                                 hoe = findHoe()
                                 if hoe then
-                                    if hoe.Parent ~= character then
-                                        humanoid:EquipTool(hoe)
-                                        task.wait(0.2)
-                                    end
+                                    if hoe.Parent ~= character then humanoid:EquipTool(hoe); task.wait(0.2) end
                                     pcall(function() hoe:Activate() end)
                                 end
                                 harvestCount = harvestCount + 1
@@ -1507,40 +1114,22 @@ local _origSetCore = nil
                             end
                         end
                         if not AutoPotatoEnabled then break end
-
-                        -- Etape 4 : Rendre a Chris
-                        character = player.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then continue end
-                        chrisCFrame = getChrisPosition()
-                        if chrisCFrame then
-                            local chrisPos = chrisCFrame.Position
-                            hrp.CFrame = CFrame.new(chrisPos + Vector3.new(0, 0, 3), chrisPos)
-                            hrp.Velocity = Vector3.new(0,0,0)
-                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                        end
-                        task.wait(3)
-                        if not AutoPotatoEnabled then break end
+                        task.wait(1)
                     end
                 end)
             end
         end,
     })
 
-    -- ─── Toggle 3 : Auto Farm Steak lvl 60 ────────────────────────
-    local AutoSteakEnabled = false
-    -- Table globale des citizens deja livres (persiste meme si toggle off/on)
-    local allDeliveredCitizens = {}
-
+    -- Toggle 5 : Auto Steak Delivery
     OtherQuestTab:Toggle({
-        Title = "Auto Farm Steak lvl 60",
+        Title = "Auto Steak Delivery",
         Value = false,
         Callback = function(state)
             AutoSteakEnabled = state
             if state then
                 task.spawn(function()
                     local player = game:GetService("Players").LocalPlayer
-
                     local function getChefJackPosition()
                         local npcsFolder = workspace:FindFirstChild("NPCs")
                         if not npcsFolder then return nil end
@@ -1556,41 +1145,32 @@ local _origSetCore = nil
                         end
                         return nil
                     end
-
                     local function SendSteakQuest()
                         pcall(function()
                             local args = {
                                 [1] = "pcgamer4",
-                                [2] = {
-                                    ["Extra"]   = "DeliverSteak",
-                                    ["Type"]    = "questpls",
-                                    ["NpcName"] = "Chef Jack"
-                                }
+                                [2] = { ["Extra"] = "DeliverSteak", ["Type"] = "questpls", ["NpcName"] = "Chef Jack" }
                             }
                             game:GetService("ReplicatedStorage").MainRemote:FireServer(unpack(args))
                         end)
                     end
-
                     local function findPlate()
                         local backpack = player:FindFirstChild("Backpack")
                         if backpack then
-                            for _, tool in ipairs(backpack:GetChildren()) do
-                                if tool:IsA("Tool") and (tool.Name == "Plat" or tool.Name == "Plate" or tool.Name:lower():find("plat")) then
-                                    return tool
-                                end
-                            end
+                            local tool = backpack:FindFirstChild("Plate")
+                            if tool then return tool end
+                            tool = backpack:FindFirstChild("SteakPlate")
+                            if tool then return tool end
                         end
                         local char = player.Character
                         if char then
-                            for _, tool in ipairs(char:GetChildren()) do
-                                if tool:IsA("Tool") and (tool.Name == "Plat" or tool.Name == "Plate" or tool.Name:lower():find("plat")) then
-                                    return tool
-                                end
-                            end
+                            local tool = char:FindFirstChild("Plate")
+                            if tool then return tool end
+                            tool = char:FindFirstChild("SteakPlate")
+                            if tool then return tool end
                         end
                         return nil
                     end
-
                     local function findQuestTool()
                         local backpack = player:FindFirstChild("Backpack")
                         if backpack then
@@ -1606,7 +1186,6 @@ local _origSetCore = nil
                         end
                         return nil
                     end
-
                     local function getCitizenID(npc)
                         local part = npc:FindFirstChild("HumanoidRootPart")
                             or npc:FindFirstChild("Head")
@@ -1617,7 +1196,6 @@ local _origSetCore = nil
                         end
                         return tostring(npc:GetFullName())
                     end
-
                     local function findAvailableCitizens()
                         local citizens = {}
                         pcall(function()
@@ -1626,9 +1204,7 @@ local _origSetCore = nil
                             for _, npc in ipairs(wandering:GetChildren()) do
                                 if npc.Name == "Citizen" then
                                     local citizenID = getCitizenID(npc)
-                                    if allDeliveredCitizens[npc] or allDeliveredCitizens[citizenID] then
-                                        continue
-                                    end
+                                    if allDeliveredCitizens[npc] or allDeliveredCitizens[citizenID] then continue end
                                     local npcPart = npc:FindFirstChild("HumanoidRootPart")
                                         or npc:FindFirstChild("Head")
                                         or npc:FindFirstChild("Torso")
@@ -1647,7 +1223,6 @@ local _origSetCore = nil
                         end)
                         return citizens
                     end
-
                     local function countTotalCitizens()
                         local count = 0
                         pcall(function()
@@ -1659,13 +1234,11 @@ local _origSetCore = nil
                         end)
                         return count
                     end
-
                     local function countDelivered()
                         local count = 0
                         for _ in pairs(allDeliveredCitizens) do count = count + 1 end
                         return math.floor(count / 2)
                     end
-
                     while AutoSteakEnabled do
                         local character = player.Character
                         if not character then player.CharacterAdded:Wait(); task.wait(1); continue end
@@ -1673,20 +1246,11 @@ local _origSetCore = nil
                         if not hrp then player.CharacterAdded:Wait(); task.wait(1); continue end
                         local humanoid = character:FindFirstChildOfClass("Humanoid")
                         if not humanoid or humanoid.Health <= 0 then player.CharacterAdded:Wait(); task.wait(1); continue end
-
-                        -- Reset si tous livres
                         local total = countTotalCitizens()
                         local delivered = countDelivered()
-                        if delivered >= total and total > 0 then
-                            allDeliveredCitizens = {}
-                        end
+                        if delivered >= total and total > 0 then allDeliveredCitizens = {} end
                         local available = findAvailableCitizens()
-                        if #available < 5 then
-                            allDeliveredCitizens = {}
-                            task.wait(0.5)
-                        end
-
-                        -- Etape 1 : Chef Jack + quete
+                        if #available < 5 then allDeliveredCitizens = {}; task.wait(0.5) end
                         local jackCFrame = getChefJackPosition()
                         if jackCFrame then
                             local jackPos = jackCFrame.Position
@@ -1698,8 +1262,6 @@ local _origSetCore = nil
                         SendSteakQuest()
                         task.wait(3)
                         if not AutoSteakEnabled then break end
-
-                        -- Etape 2 : Equiper le tool
                         local plate = nil
                         local waitTime = 0
                         while not plate and waitTime < 10 and AutoSteakEnabled do
@@ -1716,8 +1278,6 @@ local _origSetCore = nil
                             task.wait(0.5)
                         end
                         if not AutoSteakEnabled then break end
-
-                        -- Etape 3 : Livrer a 5 Citizens jamais livres
                         local deliverCount = 0
                         while deliverCount < 5 and AutoSteakEnabled do
                             character = player.Character
@@ -1725,7 +1285,6 @@ local _origSetCore = nil
                             if not hrp then break end
                             humanoid = character:FindFirstChildOfClass("Humanoid")
                             if not humanoid or humanoid.Health <= 0 then break end
-
                             local citizens = findAvailableCitizens()
                             if #citizens == 0 then
                                 allDeliveredCitizens = {}
@@ -1733,58 +1292,35 @@ local _origSetCore = nil
                                 citizens = findAvailableCitizens()
                                 if #citizens == 0 then task.wait(1); continue end
                             end
-
                             for _, citizen in ipairs(citizens) do
                                 if not AutoSteakEnabled then break end
                                 if deliverCount >= 5 then break end
-                                if allDeliveredCitizens[citizen.Model] or allDeliveredCitizens[citizen.ID] then continue end
-
                                 character = player.Character
                                 hrp = character and character:FindFirstChild("HumanoidRootPart")
                                 if not hrp then break end
                                 humanoid = character:FindFirstChildOfClass("Humanoid")
                                 if not humanoid or humanoid.Health <= 0 then break end
-
-                                plate = findPlate() or findQuestTool()
+                                hrp.CFrame = CFrame.new(citizen.Part.Position + Vector3.new(0, 0, 2), citizen.Part.Position)
+                                hrp.Velocity = Vector3.new(0,0,0)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                                task.wait(0.3)
+                                plate = findPlate()
+                                if not plate then plate = findQuestTool() end
                                 if plate then
                                     if plate.Parent ~= character then
                                         humanoid:EquipTool(plate)
-                                        task.wait(0.3)
+                                        task.wait(0.2)
                                     end
+                                    pcall(function() plate:Activate() end)
                                 end
-
-                                local citizenPos = citizen.Part.Position
-                                hrp.CFrame = CFrame.new(citizenPos + Vector3.new(0, 0, -3), citizenPos)
-                                hrp.Velocity = Vector3.new(0,0,0)
-                                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-
-                                pcall(function()
-                                    firetouchinterest(hrp, citizen.Part, 0)
-                                    task.wait(0.1)
-                                    firetouchinterest(hrp, citizen.Part, 1)
-                                end)
-
-                                allDeliveredCitizens[citizen.Model] = true
-                                allDeliveredCitizens[citizen.ID]    = true
-                                deliverCount = deliverCount + 1
                                 task.wait(0.5)
+                                allDeliveredCitizens[citizen.Model] = true
+                                allDeliveredCitizens[citizen.ID] = true
+                                deliverCount = deliverCount + 1
                             end
                         end
                         if not AutoSteakEnabled then break end
-
-                        -- Etape 4 : Rendre a Chef Jack
-                        character = player.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then continue end
-                        jackCFrame = getChefJackPosition()
-                        if jackCFrame then
-                            local jackPos = jackCFrame.Position
-                            hrp.CFrame = CFrame.new(jackPos + Vector3.new(0, 0, 3), jackPos)
-                            hrp.Velocity = Vector3.new(0,0,0)
-                            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                        end
-                        task.wait(3)
-                        if not AutoSteakEnabled then break end
+                        task.wait(1)
                     end
                 end)
             end
@@ -1792,29 +1328,21 @@ local _origSetCore = nil
     })
 
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET TELEPORT
+    -- CONTENU TELEPORTTAB
     -- ════════════════════════════════════════════════════════════════
-    local TeleportTab = MainSection:Tab({
-        Title = "Teleport",
-        Icon = "map-pin",
-    })
     TeleportTab:Section({
-        Title = "Teleport",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
+        Title = "Teleport", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold,
     })
     local TeleportLocations = {
         {Name = "Magic Tree",     Position = Vector3.new(-1037.99, 67.40, -2099)},
-        {Name = "Clever Village", Position = Vector3.new(-0.98,    45.30,  -404.23)},
+        {Name = "Clever Village", Position = Vector3.new(-0.98,    45.30, -404.23)},
         {Name = "Tower",          Position = Vector3.new(85.70,    55.07, -1093.18)},
     }
     local selectedTeleportName     = nil
     local selectedTeleportPosition = nil
     local function getTeleportNames()
         local names = {}
-        for _, location in ipairs(TeleportLocations) do
-            table.insert(names, location.Name)
-        end
+        for _, location in ipairs(TeleportLocations) do table.insert(names, location.Name) end
         return names
     end
     local function getPositionByName(name)
@@ -1829,9 +1357,7 @@ local _origSetCore = nil
         selectedTeleportPosition = getPositionByName(selectedTeleportName)
     end
     TeleportTab:Dropdown({
-        Title = "Destination",
-        Values = teleportNames,
-        Value = selectedTeleportName or "",
+        Title = "Destination", Values = teleportNames, Value = selectedTeleportName or "",
         Callback = function(value)
             selectedTeleportName     = value
             selectedTeleportPosition = getPositionByName(value)
@@ -1843,24 +1369,16 @@ local _origSetCore = nil
             if selectedTeleportPosition then
                 local character = game:GetService("Players").LocalPlayer.Character
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.CFrame = CFrame.new(selectedTeleportPosition)
-                end
+                if hrp then hrp.CFrame = CFrame.new(selectedTeleportPosition) end
             end
         end,
     })
 
     -- ════════════════════════════════════════════════════════════════
-    -- ONGLET STATS
+    -- CONTENU STATSTAB
     -- ════════════════════════════════════════════════════════════════
-    local StatsTab = MainSection:Tab({
-        Title = "Stats",
-        Icon = "chart-no-axes-combined",
-    })
     StatsTab:Section({
-        Title = "Auto Stats",
-        TextSize = 18,
-        FontWeight = Enum.FontWeight.SemiBold,
+        Title = "Auto Stats", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold,
     })
     local StatsRunning = {}
     local function SendStat(statName)
@@ -1873,53 +1391,29 @@ local _origSetCore = nil
         if StatsRunning[statName] then return end
         StatsRunning[statName] = true
         task.spawn(function()
-            while StatsRunning[statName] do
-                SendStat(statName)
-                task.wait(0)
-            end
+            while StatsRunning[statName] do SendStat(statName); task.wait(0) end
         end)
     end
-    local function StopStatLoop(statName)
-        StatsRunning[statName] = false
-    end
-    StatsTab:Toggle({
-        Title = "Auto Power",     Value = false,
-        Callback = function(state) if state then StartStatLoop("Power")      else StopStatLoop("Power")      end end,
-    })
-    StatsTab:Toggle({
-        Title = "Auto Vitality",  Value = false,
-        Callback = function(state) if state then StartStatLoop("Vitality")   else StopStatLoop("Vitality")   end end,
-    })
-    StatsTab:Toggle({
-        Title = "Auto Dexterity", Value = false,
-        Callback = function(state) if state then StartStatLoop("Dexterity")  else StopStatLoop("Dexterity")  end end,
-    })
-    StatsTab:Toggle({
-        Title = "Auto Mana",      Value = false,
-        Callback = function(state) if state then StartStatLoop("Mana")       else StopStatLoop("Mana")       end end,
-    })
-    StatsTab:Toggle({
-        Title = "Auto Luck",      Value = false,
-        Callback = function(state) if state then StartStatLoop("Luck")       else StopStatLoop("Luck")       end end,
-    })
+    local function StopStatLoop(statName) StatsRunning[statName] = false end
+    StatsTab:Toggle({ Title = "Auto Power",     Value = false, Callback = function(state) if state then StartStatLoop("Power")     else StopStatLoop("Power")     end end })
+    StatsTab:Toggle({ Title = "Auto Vitality",  Value = false, Callback = function(state) if state then StartStatLoop("Vitality")  else StopStatLoop("Vitality")  end end })
+    StatsTab:Toggle({ Title = "Auto Dexterity", Value = false, Callback = function(state) if state then StartStatLoop("Dexterity") else StopStatLoop("Dexterity") end end })
+    StatsTab:Toggle({ Title = "Auto Mana",      Value = false, Callback = function(state) if state then StartStatLoop("Mana")      else StopStatLoop("Mana")      end end })
+    StatsTab:Toggle({ Title = "Auto Luck",      Value = false, Callback = function(state) if state then StartStatLoop("Luck")      else StopStatLoop("Luck")      end end })
 
     -- ════════════════════════════════════════════════════════════════
-    -- CALLBACKS WINDOW (destruction propre)
+    -- CLEANUP
     -- ════════════════════════════════════════════════════════════════
     Window:OnDestroy(function()
-        AutoFarmEnabled  = false
-        AutoWoodEnabled  = false
+        AutoFarmEnabled   = false
+        AutoWoodEnabled   = false
         AutoPotatoEnabled = false
-        AutoSteakEnabled = false
+        AutoSteakEnabled  = false
         removeFloat()
         restoreMobHitboxes()
         restoreToolHitbox()
-        if jumpConnection then
-            pcall(function() jumpConnection:Disconnect() end)
-        end
-        for _, conn in ipairs(connections) do
-            pcall(function() conn:Disconnect() end)
-        end
+        if jumpConnection then pcall(function() jumpConnection:Disconnect() end) end
+        for _, conn in ipairs(connections) do pcall(function() conn:Disconnect() end) end
         pcall(function()
             local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if hum then hum.WalkSpeed = 16 end
@@ -1933,6 +1427,13 @@ end
 -- ══════════════════════════════════════════════════════════════════
 -- LOGIQUE DE VÉRIFICATION
 -- ══════════════════════════════════════════════════════════════════
+local savedKeyClean = KeyFile("load")
+if savedKeyClean and savedKeyClean ~= "" then
+    savedKeyClean = savedKeyClean:upper():gsub("%s+", "")
+else
+    savedKeyClean = nil
+end
+
 local function TryVerify(key)
     if key == "" then
         StatusLabel.Text = "⚠ Please enter a license key"
@@ -1973,9 +1474,6 @@ local function TryVerify(key)
     end)
 end
 
--- ══════════════════════════════════════════════════════════════════
--- AFFICHAGE DU GUI (clé pré-remplie si sauvegardée)
--- ══════════════════════════════════════════════════════════════════
 if savedKeyClean then
     StatusLabel.Text = "🔑 Saved key detected — click Verify"
     StatusLabel.TextColor3 = Color3.fromRGB(99,102,241)
