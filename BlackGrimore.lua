@@ -905,6 +905,340 @@ OtherQuestTab:Toggle({
     end,
 })
 
+-- ─── Toggle : Block NotificationFrame ─────────────────────
+local BlockNotifEnabled = true
+local _notifConns = {}
+local _notifHeartbeat = nil
+local _origSetCore = nil
+
+OtherQuestTab:Toggle({
+    Title = "Block Notifications",
+    Value = true,
+    Callback = function(state)
+        BlockNotifEnabled = state
+
+        if state then
+            task.spawn(function()
+                local Players    = game:GetService("Players")
+                local CoreGui    = game:GetService("CoreGui")
+                local RunService = game:GetService("RunService")
+                local StarterGui = game:GetService("StarterGui")
+
+                local LocalPlayer = Players.LocalPlayer
+                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
+
+                local TARGETS = {
+                    "NotificationFrame",
+                    "PopupFrame",
+                }
+
+                local function isTarget(obj)
+                    if not obj or not obj.Name then return false end
+                    for _, name in ipairs(TARGETS) do
+                        if obj.Name == name then return true end
+                    end
+                    return false
+                end
+
+                local function BlockObj(obj)
+                    if not obj then return end
+                    pcall(function()
+                        if obj:IsA("GuiObject") then
+                            obj.Visible = false
+                            obj.BackgroundTransparency = 1
+                            obj.Position = UDim2.new(99, 0, 99, 0)
+                        end
+                        for _, c in ipairs(obj:GetDescendants()) do
+                            pcall(function()
+                                if c:IsA("GuiObject") then
+                                    c.Visible = false
+                                    c.BackgroundTransparency = 1
+                                end
+                                if c:IsA("TextLabel") or c:IsA("TextButton") then
+                                    c.TextTransparency = 1
+                                end
+                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
+                                    c.ImageTransparency = 1
+                                end
+                            end)
+                        end
+                        task.delay(0.02, function()
+                            pcall(function()
+                                if obj and obj.Parent then obj:Destroy() end
+                            end)
+                        end)
+                    end)
+                end
+
+                -- Scan initial
+                pcall(function()
+                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+                pcall(function()
+                    for _, obj in ipairs(CoreGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+
+                -- DescendantAdded PlayerGui
+                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
+                    if isTarget(obj) then BlockObj(obj) end
+                end)
+                table.insert(_notifConns, c1)
+
+                -- DescendantAdded CoreGui
+                pcall(function()
+                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
+                        if isTarget(obj) then BlockObj(obj) end
+                    end)
+                    table.insert(_notifConns, c2)
+                end)
+
+                -- ChildAdded PlayerGui (nouveaux ScreenGui)
+                local c3 = PlayerGui.ChildAdded:Connect(function(child)
+                    if child:IsA("ScreenGui") then
+                        local c4 = child.DescendantAdded:Connect(function(obj)
+                            if isTarget(obj) then BlockObj(obj) end
+                        end)
+                        table.insert(_notifConns, c4)
+                        task.wait(0.05)
+                        for _, obj in ipairs(child:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end
+                end)
+                table.insert(_notifConns, c3)
+
+                -- ScreenGui existants
+                pcall(function()
+                    for _, sg in ipairs(PlayerGui:GetChildren()) do
+                        if sg:IsA("ScreenGui") then
+                            local c5 = sg.DescendantAdded:Connect(function(obj)
+                                if isTarget(obj) then BlockObj(obj) end
+                            end)
+                            table.insert(_notifConns, c5)
+                        end
+                    end
+                end)
+
+                -- Hook SetCore
+                _origSetCore = StarterGui.SetCore
+                pcall(function()
+                    StarterGui.SetCore = function(self, t, ...)
+                        if t == "SendNotification" then return end
+                        return _origSetCore(self, t, ...)
+                    end
+                end)
+
+                -- Heartbeat 0.2s — filet de sécurité
+                local timer = 0
+                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
+                    if not BlockNotifEnabled then return end
+                    timer = timer + dt
+                    if timer < 0.2 then return end
+                    timer = 0
+                    pcall(function()
+                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end)
+                end)
+
+            end)
+
+        else
+            -- ARRÊT — Déconnecter tout
+            for _, conn in ipairs(_notifConns) do
+                pcall(function() conn:Disconnect() end)
+            end
+            _notifConns = {}
+
+            if _notifHeartbeat then
+                pcall(function() _notifHeartbeat:Disconnect() end)
+                _notifHeartbeat = nil
+            end
+
+            -- Restaurer SetCore
+            pcall(function()
+                local StarterGui = game:GetService("StarterGui")
+                if _origSetCore then
+                    StarterGui.SetCore = _origSetCore
+                    _origSetCore = nil
+                end
+            end)
+        end
+    end,
+})
+
+-- ─── Toggle : Block NotificationFrame ─────────────────────
+local BlockNotifEnabled = true
+local _notifConns = {}
+local _notifHeartbeat = nil
+local _origSetCore = nil
+
+    QuestTab:Toggle({
+    Title = "Block Quests Notifications",
+    Value = true,
+    Callback = function(state)
+        BlockNotifEnabled = state
+
+        if state then
+            task.spawn(function()
+                local Players    = game:GetService("Players")
+                local CoreGui    = game:GetService("CoreGui")
+                local RunService = game:GetService("RunService")
+                local StarterGui = game:GetService("StarterGui")
+
+                local LocalPlayer = Players.LocalPlayer
+                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
+
+                local TARGETS = {
+                    "NotificationFrame",
+                    "PopupFrame",
+                }
+
+                local function isTarget(obj)
+                    if not obj or not obj.Name then return false end
+                    for _, name in ipairs(TARGETS) do
+                        if obj.Name == name then return true end
+                    end
+                    return false
+                end
+
+                local function BlockObj(obj)
+                    if not obj then return end
+                    pcall(function()
+                        if obj:IsA("GuiObject") then
+                            obj.Visible = false
+                            obj.BackgroundTransparency = 1
+                            obj.Position = UDim2.new(99, 0, 99, 0)
+                        end
+                        for _, c in ipairs(obj:GetDescendants()) do
+                            pcall(function()
+                                if c:IsA("GuiObject") then
+                                    c.Visible = false
+                                    c.BackgroundTransparency = 1
+                                end
+                                if c:IsA("TextLabel") or c:IsA("TextButton") then
+                                    c.TextTransparency = 1
+                                end
+                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
+                                    c.ImageTransparency = 1
+                                end
+                            end)
+                        end
+                        task.delay(0.02, function()
+                            pcall(function()
+                                if obj and obj.Parent then obj:Destroy() end
+                            end)
+                        end)
+                    end)
+                end
+
+                -- Scan initial
+                pcall(function()
+                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+                pcall(function()
+                    for _, obj in ipairs(CoreGui:GetDescendants()) do
+                        if isTarget(obj) then BlockObj(obj) end
+                    end
+                end)
+
+                -- DescendantAdded PlayerGui
+                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
+                    if isTarget(obj) then BlockObj(obj) end
+                end)
+                table.insert(_notifConns, c1)
+
+                -- DescendantAdded CoreGui
+                pcall(function()
+                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
+                        if isTarget(obj) then BlockObj(obj) end
+                    end)
+                    table.insert(_notifConns, c2)
+                end)
+
+                -- ChildAdded PlayerGui (nouveaux ScreenGui)
+                local c3 = PlayerGui.ChildAdded:Connect(function(child)
+                    if child:IsA("ScreenGui") then
+                        local c4 = child.DescendantAdded:Connect(function(obj)
+                            if isTarget(obj) then BlockObj(obj) end
+                        end)
+                        table.insert(_notifConns, c4)
+                        task.wait(0.05)
+                        for _, obj in ipairs(child:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end
+                end)
+                table.insert(_notifConns, c3)
+
+                -- ScreenGui existants
+                pcall(function()
+                    for _, sg in ipairs(PlayerGui:GetChildren()) do
+                        if sg:IsA("ScreenGui") then
+                            local c5 = sg.DescendantAdded:Connect(function(obj)
+                                if isTarget(obj) then BlockObj(obj) end
+                            end)
+                            table.insert(_notifConns, c5)
+                        end
+                    end
+                end)
+
+                -- Hook SetCore
+                _origSetCore = StarterGui.SetCore
+                pcall(function()
+                    StarterGui.SetCore = function(self, t, ...)
+                        if t == "SendNotification" then return end
+                        return _origSetCore(self, t, ...)
+                    end
+                end)
+
+                -- Heartbeat 0.2s — filet de sécurité
+                local timer = 0
+                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
+                    if not BlockNotifEnabled then return end
+                    timer = timer + dt
+                    if timer < 0.2 then return end
+                    timer = 0
+                    pcall(function()
+                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
+                            if isTarget(obj) then BlockObj(obj) end
+                        end
+                    end)
+                end)
+
+            end)
+
+        else
+            -- ARRÊT — Déconnecter tout
+            for _, conn in ipairs(_notifConns) do
+                pcall(function() conn:Disconnect() end)
+            end
+            _notifConns = {}
+
+            if _notifHeartbeat then
+                pcall(function() _notifHeartbeat:Disconnect() end)
+                _notifHeartbeat = nil
+            end
+
+            -- Restaurer SetCore
+            pcall(function()
+                local StarterGui = game:GetService("StarterGui")
+                if _origSetCore then
+                    StarterGui.SetCore = _origSetCore
+                    _origSetCore = nil
+                end
+            end)
+        end
+    end,
+})
+
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET OTHER QUEST (ex-Money, sans Auto Delivery GreenJuice)
     -- Contient les 3 nouveaux toggles du Script B
@@ -1479,173 +1813,6 @@ OtherQuestTab:Toggle({
             end
         end,
     })
-
--- ─── Toggle : Block NotificationFrame ─────────────────────
-local BlockNotifEnabled = true
-local _notifConns = {}
-local _notifHeartbeat = nil
-local _origSetCore = nil
-
-OtherQuestTab:Toggle({
-    Title = "Block Notifications",
-    Value = true,
-    Callback = function(state)
-        BlockNotifEnabled = state
-
-        if state then
-            task.spawn(function()
-                local Players    = game:GetService("Players")
-                local CoreGui    = game:GetService("CoreGui")
-                local RunService = game:GetService("RunService")
-                local StarterGui = game:GetService("StarterGui")
-
-                local LocalPlayer = Players.LocalPlayer
-                local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
-
-                local TARGETS = {
-                    "NotificationFrame",
-                    "PopupFrame",
-                }
-
-                local function isTarget(obj)
-                    if not obj or not obj.Name then return false end
-                    for _, name in ipairs(TARGETS) do
-                        if obj.Name == name then return true end
-                    end
-                    return false
-                end
-
-                local function BlockObj(obj)
-                    if not obj then return end
-                    pcall(function()
-                        if obj:IsA("GuiObject") then
-                            obj.Visible = false
-                            obj.BackgroundTransparency = 1
-                            obj.Position = UDim2.new(99, 0, 99, 0)
-                        end
-                        for _, c in ipairs(obj:GetDescendants()) do
-                            pcall(function()
-                                if c:IsA("GuiObject") then
-                                    c.Visible = false
-                                    c.BackgroundTransparency = 1
-                                end
-                                if c:IsA("TextLabel") or c:IsA("TextButton") then
-                                    c.TextTransparency = 1
-                                end
-                                if c:IsA("ImageLabel") or c:IsA("ImageButton") then
-                                    c.ImageTransparency = 1
-                                end
-                            end)
-                        end
-                        task.delay(0.02, function()
-                            pcall(function()
-                                if obj and obj.Parent then obj:Destroy() end
-                            end)
-                        end)
-                    end)
-                end
-
-                -- Scan initial
-                pcall(function()
-                    for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
-                    end
-                end)
-                pcall(function()
-                    for _, obj in ipairs(CoreGui:GetDescendants()) do
-                        if isTarget(obj) then BlockObj(obj) end
-                    end
-                end)
-
-                -- DescendantAdded PlayerGui
-                local c1 = PlayerGui.DescendantAdded:Connect(function(obj)
-                    if isTarget(obj) then BlockObj(obj) end
-                end)
-                table.insert(_notifConns, c1)
-
-                -- DescendantAdded CoreGui
-                pcall(function()
-                    local c2 = CoreGui.DescendantAdded:Connect(function(obj)
-                        if isTarget(obj) then BlockObj(obj) end
-                    end)
-                    table.insert(_notifConns, c2)
-                end)
-
-                -- ChildAdded PlayerGui (nouveaux ScreenGui)
-                local c3 = PlayerGui.ChildAdded:Connect(function(child)
-                    if child:IsA("ScreenGui") then
-                        local c4 = child.DescendantAdded:Connect(function(obj)
-                            if isTarget(obj) then BlockObj(obj) end
-                        end)
-                        table.insert(_notifConns, c4)
-                        task.wait(0.05)
-                        for _, obj in ipairs(child:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end
-                end)
-                table.insert(_notifConns, c3)
-
-                -- ScreenGui existants
-                pcall(function()
-                    for _, sg in ipairs(PlayerGui:GetChildren()) do
-                        if sg:IsA("ScreenGui") then
-                            local c5 = sg.DescendantAdded:Connect(function(obj)
-                                if isTarget(obj) then BlockObj(obj) end
-                            end)
-                            table.insert(_notifConns, c5)
-                        end
-                    end
-                end)
-
-                -- Hook SetCore
-                _origSetCore = StarterGui.SetCore
-                pcall(function()
-                    StarterGui.SetCore = function(self, t, ...)
-                        if t == "SendNotification" then return end
-                        return _origSetCore(self, t, ...)
-                    end
-                end)
-
-                -- Heartbeat 0.2s — filet de sécurité
-                local timer = 0
-                _notifHeartbeat = RunService.Heartbeat:Connect(function(dt)
-                    if not BlockNotifEnabled then return end
-                    timer = timer + dt
-                    if timer < 0.2 then return end
-                    timer = 0
-                    pcall(function()
-                        for _, obj in ipairs(PlayerGui:GetDescendants()) do
-                            if isTarget(obj) then BlockObj(obj) end
-                        end
-                    end)
-                end)
-
-            end)
-
-        else
-            -- ARRÊT — Déconnecter tout
-            for _, conn in ipairs(_notifConns) do
-                pcall(function() conn:Disconnect() end)
-            end
-            _notifConns = {}
-
-            if _notifHeartbeat then
-                pcall(function() _notifHeartbeat:Disconnect() end)
-                _notifHeartbeat = nil
-            end
-
-            -- Restaurer SetCore
-            pcall(function()
-                local StarterGui = game:GetService("StarterGui")
-                if _origSetCore then
-                    StarterGui.SetCore = _origSetCore
-                    _origSetCore = nil
-                end
-            end)
-        end
-    end,
-})
 
     -- ════════════════════════════════════════════════════════════════
     -- ONGLET TELEPORT
